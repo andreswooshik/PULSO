@@ -19,13 +19,17 @@ Future<void> main() async {
 
   // Initialize Supabase (if credentials are available)
   try {
-    final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? 'http://localhost:54321';
-    final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'] ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+    final supabaseUrl = dotenv.env['SUPABASE_URL'];
+    final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'];
 
-    await Supabase.initialize(
-      url: supabaseUrl,
-      anonKey: supabaseKey,
-    );
+    if (supabaseUrl != null && supabaseKey != null && supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty) {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        anonKey: supabaseKey,
+      );
+    } else {
+      debugPrint('⚠️ Warning: Supabase credentials missing. App will run in limited mode without backend.');
+    }
   } catch (e) {
     debugPrint('⚠️ Warning: Could not initialize Supabase: $e');
   }
