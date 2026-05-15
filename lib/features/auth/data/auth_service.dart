@@ -1,7 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  const AuthService();
+  final SupabaseClient? _clientOverride;
+
+  const AuthService({SupabaseClient? client}) : _clientOverride = client;
 
   Supabase? get _supabase {
     try {
@@ -11,9 +13,15 @@ class AuthService {
     }
   }
 
-  bool get isAvailable => _supabase?.isInitialized ?? false;
+  bool get isAvailable =>
+      _clientOverride != null || (_supabase?.isInitialized ?? false);
 
   SupabaseClient get _client {
+    final clientOverride = _clientOverride;
+    if (clientOverride != null) {
+      return clientOverride;
+    }
+
     final supabase = _supabase;
 
     if (supabase == null || !supabase.isInitialized) {

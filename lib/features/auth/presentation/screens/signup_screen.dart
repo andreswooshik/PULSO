@@ -43,11 +43,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       return;
     }
 
-    await authNotifier.signUp(
-      fullName: _nameController.text,
-      email: _emailController.text,
-      password: _passwordController.text,
-    );
+    try {
+      await authNotifier.signUp(
+        fullName: _nameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+    } finally {
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+    }
   }
 
   @override
