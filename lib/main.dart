@@ -9,17 +9,24 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  const supabaseUrlFromDefine = String.fromEnvironment('SUPABASE_URL');
+  const supabaseKeyFromDefine = String.fromEnvironment('SUPABASE_ANON_KEY');
+
   if (!kIsWeb) {
     try {
       await dotenv.load(fileName: '.env');
-    } catch (e) {
-      debugPrint('Warning: Could not load .env file: $e');
+    } catch (error) {
+      debugPrint('Warning: Could not load .env file: $error');
     }
   }
 
   try {
-    final supabaseUrl = dotenv.env['SUPABASE_URL'];
-    final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'];
+    final supabaseUrl = supabaseUrlFromDefine.isNotEmpty
+        ? supabaseUrlFromDefine
+        : dotenv.env['SUPABASE_URL'];
+    final supabaseKey = supabaseKeyFromDefine.isNotEmpty
+        ? supabaseKeyFromDefine
+        : dotenv.env['SUPABASE_ANON_KEY'];
 
     if (supabaseUrl != null &&
         supabaseKey != null &&
@@ -31,8 +38,8 @@ Future<void> main() async {
         'Warning: Supabase credentials missing. App will run in limited mode without backend.',
       );
     }
-  } catch (e) {
-    debugPrint('Warning: Could not initialize Supabase: $e');
+  } catch (error) {
+    debugPrint('Warning: Could not initialize Supabase: $error');
   }
 
   runApp(const ProviderScope(child: MyApp()));
