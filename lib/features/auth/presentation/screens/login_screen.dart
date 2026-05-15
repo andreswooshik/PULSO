@@ -28,12 +28,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    await ref
-        .read(authUiProvider.notifier)
-        .signIn(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
+    try {
+      await ref
+          .read(authUiProvider.notifier)
+          .signIn(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+    } finally {
+      _passwordController.clear();
+    }
   }
 
   @override
@@ -95,30 +99,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            AuthCheckmark(
-              checked: authState.rememberMe,
-              onPressed: authNotifier.toggleRememberMe,
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            'Forgot password?',
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Remember me',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AuthColors.label,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Text(
-              'Forgot password?',
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 24),
         AuthPrimaryAction(

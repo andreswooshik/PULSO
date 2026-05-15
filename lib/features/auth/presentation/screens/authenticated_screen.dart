@@ -10,7 +10,7 @@ class AuthenticatedScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authUiProvider);
     final authNotifier = ref.read(authUiProvider.notifier);
-    final email = authState.session?.user.email ?? 'Signed-in user';
+    final email = authState.email ?? 'Signed-in user';
 
     return Scaffold(
       backgroundColor: AuthColors.background,

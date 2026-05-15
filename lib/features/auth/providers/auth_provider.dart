@@ -23,8 +23,8 @@ extension AuthAccountTypeLabel on AuthAccountType {
 class AuthUiState {
   final AuthScreenMode screenMode;
   final AuthRequestStatus requestStatus;
-  final Session? session;
-  final bool rememberMe;
+  final String? userId;
+  final String? email;
   final bool isLoginPasswordVisible;
   final bool isSignupPasswordVisible;
   final bool isSignupConfirmPasswordVisible;
@@ -36,8 +36,8 @@ class AuthUiState {
   const AuthUiState({
     this.screenMode = AuthScreenMode.login,
     this.requestStatus = AuthRequestStatus.idle,
-    this.session,
-    this.rememberMe = true,
+    this.userId,
+    this.email,
     this.isLoginPasswordVisible = false,
     this.isSignupPasswordVisible = false,
     this.isSignupConfirmPasswordVisible = false,
@@ -47,16 +47,20 @@ class AuthUiState {
     this.infoMessage,
   });
 
-  bool get isAuthenticated => session != null;
+  factory AuthUiState.fromSession(Session? session) {
+    return AuthUiState(userId: session?.user.id, email: session?.user.email);
+  }
+
+  bool get isAuthenticated => userId != null;
 
   bool get isLoading => requestStatus == AuthRequestStatus.loading;
 
   AuthUiState copyWith({
     AuthScreenMode? screenMode,
     AuthRequestStatus? requestStatus,
-    Session? session,
-    bool clearSession = false,
-    bool? rememberMe,
+    String? userId,
+    String? email,
+    bool clearAuthUser = false,
     bool? isLoginPasswordVisible,
     bool? isSignupPasswordVisible,
     bool? isSignupConfirmPasswordVisible,
@@ -70,8 +74,8 @@ class AuthUiState {
     return AuthUiState(
       screenMode: screenMode ?? this.screenMode,
       requestStatus: requestStatus ?? this.requestStatus,
-      session: clearSession ? null : session ?? this.session,
-      rememberMe: rememberMe ?? this.rememberMe,
+      userId: clearAuthUser ? null : userId ?? this.userId,
+      email: clearAuthUser ? null : email ?? this.email,
       isLoginPasswordVisible:
           isLoginPasswordVisible ?? this.isLoginPasswordVisible,
       isSignupPasswordVisible:
@@ -93,12 +97,14 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
   StreamSubscription<AuthState>? _authSubscription;
 
   AuthUiNotifier(this._authService)
-    : super(AuthUiState(session: _authService.currentSession)) {
+    : super(AuthUiState.fromSession(_authService.currentSession)) {
     _authSubscription = _authService.authStateChanges.listen(
       (authState) {
+        final session = authState.session;
         state = state.copyWith(
-          session: authState.session,
-          clearSession: authState.session == null,
+          userId: session?.user.id,
+          email: session?.user.email,
+          clearAuthUser: session == null,
           requestStatus: AuthRequestStatus.idle,
           clearErrorMessage: true,
         );
@@ -126,10 +132,6 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
       clearErrorMessage: true,
       clearInfoMessage: true,
     );
-  }
-
-  void toggleRememberMe() {
-    state = state.copyWith(rememberMe: !state.rememberMe);
   }
 
   void toggleLoginPasswordVisibility() {
@@ -172,9 +174,12 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
         email: email,
         password: password,
       );
+      final user = response.session?.user ?? response.user;
 
       state = state.copyWith(
-        session: response.session,
+        userId: user?.id,
+        email: user?.email,
+        clearAuthUser: user == null,
         requestStatus: AuthRequestStatus.success,
         clearErrorMessage: true,
         clearInfoMessage: true,
@@ -195,9 +200,12 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
         accountType: state.accountType.label,
       );
 
-      final hasSession = response.session != null;
+      final user = response.session?.user;
+      final hasSession = user != null;
       state = state.copyWith(
-        session: response.session,
+        userId: user?.id,
+        email: user?.email,
+        clearAuthUser: !hasSession,
         requestStatus: AuthRequestStatus.success,
         screenMode: hasSession ? state.screenMode : AuthScreenMode.login,
         infoMessage: hasSession
@@ -213,7 +221,7 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
     await _runAuthRequest(() async {
       await _authService.signOut();
       state = state.copyWith(
-        clearSession: true,
+        clearAuthUser: true,
         screenMode: AuthScreenMode.login,
         requestStatus: AuthRequestStatus.idle,
         clearErrorMessage: true,
