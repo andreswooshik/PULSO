@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,12 +11,10 @@ Future<void> main() async {
   const supabaseUrlFromDefine = String.fromEnvironment('SUPABASE_URL');
   const supabaseKeyFromDefine = String.fromEnvironment('SUPABASE_ANON_KEY');
 
-  if (!kIsWeb) {
-    try {
-      await dotenv.load(fileName: '.env');
-    } catch (error) {
-      debugPrint('Warning: Could not load .env file: $error');
-    }
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (error) {
+    debugPrint('Warning: Could not load .env file: $error');
   }
 
   try {

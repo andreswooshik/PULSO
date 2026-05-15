@@ -11,7 +11,7 @@ void main() {
 
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('Sign in'), findsNWidgets(2));
-    expect(find.text('Email address'), findsOneWidget);
+    expect(find.text('Username or email'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
   });
 
@@ -36,6 +36,7 @@ void main() {
     expect(find.text('Join PULSO'), findsOneWidget);
     expect(find.text('Create your account'), findsOneWidget);
     expect(find.text('Full name'), findsOneWidget);
+    expect(find.text('Username'), findsOneWidget);
     expect(find.text('Confirm password'), findsOneWidget);
     expect(find.text('Account type'), findsOneWidget);
   });

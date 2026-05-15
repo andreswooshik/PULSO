@@ -12,12 +12,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -32,7 +32,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(authUiProvider.notifier)
           .signIn(
-            email: _emailController.text,
+            identifier: _identifierController.text,
             password: _passwordController.text,
           );
     } finally {
@@ -74,13 +74,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               AuthInputField(
-                controller: _emailController,
-                label: 'Email address',
-                hintText: 'you@example.com',
-                icon: Icons.mail_outline_rounded,
-                keyboardType: TextInputType.emailAddress,
+                controller: _identifierController,
+                label: 'Username or email',
+                hintText: 'juan_delacruz or you@example.com',
+                icon: Icons.alternate_email_rounded,
+                keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.next,
-                validator: _validateEmail,
+                validator: _validateIdentifier,
               ),
               const SizedBox(height: 16),
               AuthInputField(
@@ -125,16 +125,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  String? _validateEmail(String? value) {
-    final email = value?.trim() ?? '';
-    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+  String? _validateIdentifier(String? value) {
+    final identifier = value?.trim() ?? '';
 
-    if (email.isEmpty) {
-      return 'Email is required.';
-    }
-
-    if (!emailPattern.hasMatch(email)) {
-      return 'Enter a valid email address.';
+    if (identifier.isEmpty) {
+      return 'Username or email is required.';
     }
 
     return null;
