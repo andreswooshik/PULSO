@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 class PasswordValidationHint extends StatelessWidget {
   final String password;
 
-  const PasswordValidationHint({
-    super.key,
-    required this.password,
-  });
+  const PasswordValidationHint({super.key, required this.password});
 
   @override
   Widget build(BuildContext context) {
@@ -21,10 +18,19 @@ class PasswordValidationHint extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ValidationItem(met: hasMinLength, text: 'At least 8 characters'),
-        _ValidationItem(met: hasUppercase, text: 'At least one uppercase letter'),
-        _ValidationItem(met: hasLowercase, text: 'At least one lowercase letter'),
+        _ValidationItem(
+          met: hasUppercase,
+          text: 'At least one uppercase letter',
+        ),
+        _ValidationItem(
+          met: hasLowercase,
+          text: 'At least one lowercase letter',
+        ),
         _ValidationItem(met: hasDigits, text: 'At least one number'),
-        _ValidationItem(met: hasSpecialChar, text: 'At least one special character'),
+        _ValidationItem(
+          met: hasSpecialChar,
+          text: 'At least one special character',
+        ),
       ],
     );
   }

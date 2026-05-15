@@ -38,11 +38,7 @@ class _AvatarPickerState extends State<AvatarPicker> {
               shape: BoxShape.circle,
             ),
             padding: const EdgeInsets.all(4),
-            child: const Icon(
-              Icons.camera_alt,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
           ),
         ],
       ),
