@@ -115,18 +115,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           isLoading: authState.isLoading,
           onPressed: _submit,
         ),
-        const SizedBox(height: 24),
-        const AuthDividerLabel(),
-        const SizedBox(height: 18),
-        const AuthSocialButton(
-          icon: Icons.g_mobiledata_rounded,
-          label: 'Continue with Google',
-        ),
-        const SizedBox(height: 12),
-        const AuthSocialButton(
-          icon: Icons.facebook_rounded,
-          label: 'Continue with Facebook',
-        ),
         const SizedBox(height: 28),
         AuthFooterPrompt(
           text: 'New to PULSO? ',

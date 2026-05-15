@@ -65,7 +65,7 @@ void main() {
         fullName: ' Juan Dela Cruz ',
         email: ' new@example.com ',
         password: 'securePassword123',
-        accountType: 'member',
+        accountType: 'personal',
       );
 
       expect(result.user, user);
@@ -73,7 +73,7 @@ void main() {
         () => authClient.signUp(
           email: 'new@example.com',
           password: 'securePassword123',
-          data: {'full_name': 'Juan Dela Cruz', 'account_type': 'member'},
+          data: {'full_name': 'Juan Dela Cruz', 'account_type': 'personal'},
         ),
       ).called(1);
     });
