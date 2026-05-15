@@ -29,8 +29,8 @@ class SocialLoginButton extends StatelessWidget {
       provider == 'google'
           ? Icons.g_mobiledata
           : provider == 'github'
-              ? Icons.code
-              : Icons.apple,
+          ? Icons.code
+          : Icons.apple,
     );
   }
 }
