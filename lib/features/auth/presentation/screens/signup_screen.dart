@@ -149,27 +149,27 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           runSpacing: 10,
           children: [
             AuthTypePill(
-              label: 'Member',
-              icon: Icons.groups_2_outlined,
-              selected: authState.accountType == AuthAccountType.member,
+              label: 'Personal',
+              icon: Icons.person_outline_rounded,
+              selected: authState.accountType == AuthAccountType.personal,
               onPressed: () {
-                authNotifier.selectAccountType(AuthAccountType.member);
+                authNotifier.selectAccountType(AuthAccountType.personal);
               },
             ),
             AuthTypePill(
-              label: 'Volunteer',
-              icon: Icons.volunteer_activism_outlined,
-              selected: authState.accountType == AuthAccountType.volunteer,
+              label: 'Business',
+              icon: Icons.business_center_outlined,
+              selected: authState.accountType == AuthAccountType.business,
               onPressed: () {
-                authNotifier.selectAccountType(AuthAccountType.volunteer);
+                authNotifier.selectAccountType(AuthAccountType.business);
               },
             ),
             AuthTypePill(
-              label: 'Organizer',
-              icon: Icons.event_available_outlined,
-              selected: authState.accountType == AuthAccountType.organizer,
+              label: 'Organization',
+              icon: Icons.apartment_outlined,
+              selected: authState.accountType == AuthAccountType.organization,
               onPressed: () {
-                authNotifier.selectAccountType(AuthAccountType.organizer);
+                authNotifier.selectAccountType(AuthAccountType.organization);
               },
             ),
           ],
@@ -219,18 +219,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           label: 'Create account',
           isLoading: authState.isLoading,
           onPressed: _submit,
-        ),
-        const SizedBox(height: 24),
-        const AuthDividerLabel(),
-        const SizedBox(height: 18),
-        const AuthSocialButton(
-          icon: Icons.g_mobiledata_rounded,
-          label: 'Sign up with Google',
-        ),
-        const SizedBox(height: 12),
-        const AuthSocialButton(
-          icon: Icons.facebook_rounded,
-          label: 'Sign up with Facebook',
         ),
         const SizedBox(height: 28),
         AuthFooterPrompt(

@@ -6,16 +6,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum AuthScreenMode { login, signup }
 
-enum AuthAccountType { member, volunteer, organizer }
+enum AuthAccountType { personal, business, organization }
 
 enum AuthRequestStatus { idle, loading, success, failure }
 
 extension AuthAccountTypeLabel on AuthAccountType {
   String get label {
     return switch (this) {
-      AuthAccountType.member => 'member',
-      AuthAccountType.volunteer => 'volunteer',
-      AuthAccountType.organizer => 'organizer',
+      AuthAccountType.personal => 'personal',
+      AuthAccountType.business => 'business',
+      AuthAccountType.organization => 'organization',
     };
   }
 }
@@ -42,7 +42,7 @@ class AuthUiState {
     this.isSignupPasswordVisible = false,
     this.isSignupConfirmPasswordVisible = false,
     this.acceptsTerms = true,
-    this.accountType = AuthAccountType.member,
+    this.accountType = AuthAccountType.personal,
     this.errorMessage,
     this.infoMessage,
   });
