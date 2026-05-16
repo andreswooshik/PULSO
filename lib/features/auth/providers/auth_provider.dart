@@ -168,10 +168,13 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
     );
   }
 
-  Future<void> signIn({required String email, required String password}) async {
+  Future<void> signIn({
+    required String identifier,
+    required String password,
+  }) async {
     await _runAuthRequest(() async {
       final response = await _authService.signInWithEmail(
-        email: email,
+        identifier: identifier,
         password: password,
       );
       final user = response.session?.user ?? response.user;
@@ -189,12 +192,24 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
 
   Future<void> signUp({
     required String fullName,
+    required String username,
     required String email,
     required String password,
   }) async {
     await _runAuthRequest(() async {
+      final isUsernameAvailable = await _authService.isUsernameAvailable(
+        username,
+      );
+
+      if (!isUsernameAvailable) {
+        throw const AuthServiceException(
+          'Username is already taken. Choose another username.',
+        );
+      }
+
       final response = await _authService.signUpWithEmail(
         fullName: fullName,
+        username: username,
         email: email,
         password: password,
         accountType: state.accountType.label,

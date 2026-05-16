@@ -14,6 +14,7 @@ class SignupScreen extends ConsumerStatefulWidget {
 class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -21,6 +22,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -46,6 +48,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     try {
       await authNotifier.signUp(
         fullName: _nameController.text,
+        username: _usernameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
@@ -93,6 +96,26 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 icon: Icons.person_outline_rounded,
                 textInputAction: TextInputAction.next,
                 validator: _validateName,
+              ),
+              const SizedBox(height: 16),
+              AuthInputField(
+                controller: _usernameController,
+                label: 'Username',
+                hintText: 'juan_delacruz',
+                icon: Icons.alternate_email_rounded,
+                textInputAction: TextInputAction.next,
+                onChanged: (value) {
+                  final normalized = value.trim().toLowerCase();
+                  if (value != normalized) {
+                    _usernameController.value = TextEditingValue(
+                      text: normalized,
+                      selection: TextSelection.collapsed(
+                        offset: normalized.length,
+                      ),
+                    );
+                  }
+                },
+                validator: _validateUsername,
               ),
               const SizedBox(height: 16),
               AuthInputField(
@@ -254,6 +277,29 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     if (!emailPattern.hasMatch(email)) {
       return 'Enter a valid email address.';
+    }
+
+    return null;
+  }
+
+  String? _validateUsername(String? value) {
+    final username = value?.trim().toLowerCase() ?? '';
+    final usernamePattern = RegExp(r'^[a-z0-9_]+$');
+
+    if (username.isEmpty) {
+      return 'Username is required.';
+    }
+
+    if (username.length < 3) {
+      return 'Username must be at least 3 characters.';
+    }
+
+    if (username.length > 24) {
+      return 'Username must be 24 characters or less.';
+    }
+
+    if (!usernamePattern.hasMatch(username)) {
+      return 'Use only lowercase letters, numbers, and underscores.';
     }
 
     return null;

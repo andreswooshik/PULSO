@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulso/main.dart';
 
 void main() {
   testWidgets('App shell shows foundation navigation', (tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.pumpAndSettle();
 
     expect(find.text('Pulso'), findsOneWidget);
@@ -14,7 +15,7 @@ void main() {
   });
 
   testWidgets('Bottom navigation opens core feature areas', (tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Create'));

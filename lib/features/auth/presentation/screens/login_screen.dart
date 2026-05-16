@@ -15,12 +15,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -35,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(authUiProvider.notifier)
           .signIn(
-            email: _emailController.text,
+            identifier: _identifierController.text,
             password: _passwordController.text,
           );
     } finally {
@@ -94,10 +94,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ],
               const SizedBox(height: 42),
               AppTextField(
-                controller: _emailController,
-                label: 'Username or Email',
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail,
+                controller: _identifierController,
+                label: 'Username or email',
+                hint: 'juan_delacruz or you@example.com',
+                keyboardType: TextInputType.text,
+                validator: _validateIdentifier,
               ),
               const SizedBox(height: 14),
               TextFormField(
@@ -183,10 +184,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  String? _validateEmail(String? value) {
-    final email = value?.trim() ?? '';
-    if (email.isEmpty) {
-      return 'Email is required.';
+  String? _validateIdentifier(String? value) {
+    final identifier = value?.trim() ?? '';
+
+    if (identifier.isEmpty) {
+      return 'Username or email is required.';
     }
 
     return null;
