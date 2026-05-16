@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pulso/core/constants/app_constants.dart';
+import 'package:pulso/core/routing/app_routes.dart';
 import 'package:pulso/features/auth/presentation/widgets/auth_widgets.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 
@@ -247,7 +249,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         AuthFooterPrompt(
           text: 'Already have an account? ',
           actionText: 'Sign in',
-          onActionPressed: authNotifier.showLogin,
+          onActionPressed: () {
+            authNotifier.showLogin();
+            context.go(AppRoutes.login);
+          },
         ),
       ],
     );
