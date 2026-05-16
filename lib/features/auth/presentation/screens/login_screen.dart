@@ -38,6 +38,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             identifier: _identifierController.text,
             password: _passwordController.text,
           );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (ref.read(authUiProvider).isAuthenticated) {
+        context.go(AppRoutes.feed);
+      }
     } finally {
       _passwordController.clear();
     }

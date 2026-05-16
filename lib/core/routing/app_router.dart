@@ -9,7 +9,7 @@ import 'package:pulso/features/posts/presentation/screens/create_post_screen.dar
 import 'package:pulso/features/profile/presentation/screens/profile_screen.dart';
 
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.feed,
+  initialLocation: AppRoutes.login,
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {

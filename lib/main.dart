@@ -25,11 +25,8 @@ Future<void> main() async {
         ? supabaseKeyFromDefine
         : dotenv.env['SUPABASE_ANON_KEY'];
 
-    if (supabaseUrl != null &&
-        supabaseKey != null &&
-        supabaseUrl.isNotEmpty &&
-        supabaseKey.isNotEmpty) {
-      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
+    if (_hasUsableSupabaseCredentials(supabaseUrl, supabaseKey)) {
+      await Supabase.initialize(url: supabaseUrl!, anonKey: supabaseKey!);
     } else {
       debugPrint(
         'Warning: Supabase credentials missing. App will run in limited mode without backend.',
@@ -40,6 +37,16 @@ Future<void> main() async {
   }
 
   runApp(const ProviderScope(child: MyApp()));
+}
+
+bool _hasUsableSupabaseCredentials(String? url, String? key) {
+  final cleanUrl = url?.trim() ?? '';
+  final cleanKey = key?.trim() ?? '';
+
+  return cleanUrl.isNotEmpty &&
+      cleanKey.isNotEmpty &&
+      !cleanUrl.contains('your-project-ref') &&
+      cleanKey != 'your-supabase-anon-key';
 }
 
 class MyApp extends StatelessWidget {
