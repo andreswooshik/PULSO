@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pulso/features/profile/presentation/widgets/profile_widgets.dart';
 
-/// Placeholder for Profile Screen
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -13,7 +13,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: const Center(child: Text('Profile Screen - To be implemented')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          CircleAvatar(radius: 44, child: Icon(Icons.person, size: 44)),
+          SizedBox(height: 16),
+          Center(
+            child: Text(
+              'Community Member',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+          ),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ProfileStatItem(label: 'Posts', value: '0'),
+              ProfileStatItem(label: 'Followers', value: '0'),
+              ProfileStatItem(label: 'Following', value: '0'),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
