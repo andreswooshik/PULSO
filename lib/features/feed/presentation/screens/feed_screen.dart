@@ -27,7 +27,7 @@ class FeedScreen extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Login',
-            onPressed: () => context.push(AppRoutes.login),
+            onPressed: () => context.go(AppRoutes.login),
             icon: const Icon(Icons.login),
           ),
         ],
