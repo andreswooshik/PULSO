@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:pulso/core/theme/app_theme.dart';
 
 class AuthColors {
-  static const background = Color(0xFFF6F8FB);
-  static const ink = Color(0xFF172033);
-  static const body = Color(0xFF657184);
-  static const label = Color(0xFF364153);
-  static const border = Color(0xFFD9E0EA);
-  static const muted = Color(0xFF7A8596);
+  static const background = AppTheme.pearl;
+  static const ink = AppTheme.midnight;
+  static const body = Color(0xFF4B5563);
+  static const label = AppTheme.midnight;
+  static const border = Color(0xFFD8D4C4);
+  static const muted = Color(0xFF667085);
 }
 
 class AuthPage extends StatelessWidget {
@@ -80,28 +81,24 @@ class AuthBrandHeader extends StatelessWidget {
           width: 58,
           height: 58,
           decoration: BoxDecoration(
-            color: AuthColors.ink,
+            color: AppTheme.royalBlue,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: AuthColors.ink.withValues(alpha: 0.14),
+                color: AppTheme.royalBlue.withValues(alpha: 0.18),
                 blurRadius: 18,
                 offset: const Offset(0, 10),
               ),
             ],
           ),
-          child: const Icon(
-            Icons.monitor_heart_outlined,
-            color: Colors.white,
-            size: 30,
-          ),
+          child: const Icon(Icons.bolt_outlined, color: Colors.white, size: 30),
         ),
         const SizedBox(height: 18),
         Text(
           title,
           style: textTheme.headlineMedium?.copyWith(
             color: AuthColors.ink,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
           ),
         ),
         const SizedBox(height: 8),
@@ -138,7 +135,7 @@ class AuthSectionTitle extends StatelessWidget {
           title,
           style: textTheme.headlineSmall?.copyWith(
             color: AuthColors.ink,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
           ),
         ),
         const SizedBox(height: 8),
@@ -161,7 +158,10 @@ class AuthInputField extends StatelessWidget {
   final VoidCallback? onTrailingPressed;
   final ValueChanged<String>? onChanged;
   final bool obscureText;
+  final bool readOnly;
+  final VoidCallback? onTap;
   final TextInputType keyboardType;
+  final TextCapitalization textCapitalization;
   final TextInputAction? textInputAction;
 
   const AuthInputField({
@@ -175,7 +175,10 @@ class AuthInputField extends StatelessWidget {
     this.onTrailingPressed,
     this.onChanged,
     this.obscureText = false,
+    this.readOnly = false,
+    this.onTap,
     this.keyboardType = TextInputType.text,
+    this.textCapitalization = TextCapitalization.none,
     this.textInputAction,
   });
 
@@ -190,7 +193,7 @@ class AuthInputField extends StatelessWidget {
           label,
           style: textTheme.labelLarge?.copyWith(
             color: AuthColors.label,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 8),
@@ -198,8 +201,11 @@ class AuthInputField extends StatelessWidget {
           controller: controller,
           validator: validator,
           keyboardType: keyboardType,
+          textCapitalization: textCapitalization,
           obscureText: obscureText,
+          readOnly: readOnly,
           textInputAction: textInputAction,
+          onTap: onTap,
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hintText,
@@ -222,8 +228,8 @@ class AuthInputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
+              borderSide: const BorderSide(
+                color: AppTheme.royalBlue,
                 width: 1.4,
               ),
             ),
@@ -248,36 +254,52 @@ class AuthPrimaryAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final isDisabled = isLoading || onPressed == null;
 
     return SizedBox(
       height: 54,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          disabledBackgroundColor: primary.withValues(alpha: 0.55),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-          shadowColor: primary.withValues(alpha: 0.24),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          gradient: LinearGradient(
+            colors: isDisabled
+                ? [
+                    AppTheme.coral.withValues(alpha: 0.34),
+                    AppTheme.royalBlue.withValues(alpha: 0.34),
+                  ]
+                : const [AppTheme.coral, AppTheme.royalBlue],
+          ),
         ),
-        onPressed: isLoading ? null : onPressed,
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            disabledBackgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            disabledForegroundColor: Colors.white,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            elevation: 0,
+          ),
+          onPressed: isDisabled ? null : onPressed,
+          child: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              )
-            : Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+        ),
       ),
     );
   }
@@ -346,34 +368,47 @@ class AuthDividerLabel extends StatelessWidget {
 class AuthSocialButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback? onPressed;
 
-  const AuthSocialButton({super.key, required this.icon, required this.label});
+  const AuthSocialButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AuthColors.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: AuthColors.ink, size: 26),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AuthColors.ink,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+        onTap: onPressed,
+        child: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AuthColors.border),
           ),
-        ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: AuthColors.ink, size: 26),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AuthColors.ink,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -401,7 +436,7 @@ class AuthCheckmark extends StatelessWidget {
         height: 20,
         margin: margin,
         decoration: BoxDecoration(
-          color: checked ? Theme.of(context).colorScheme.primary : Colors.white,
+          color: checked ? AppTheme.royalBlue : Colors.white,
           borderRadius: BorderRadius.circular(6),
           border: checked ? null : Border.all(color: AuthColors.border),
         ),
@@ -435,7 +470,7 @@ class AuthFooterPrompt extends StatelessWidget {
       children: [
         Text(
           text,
-          style: textTheme.bodyMedium?.copyWith(color: AuthColors.body),
+          style: textTheme.bodyMedium?.copyWith(color: AuthColors.ink),
         ),
         InkWell(
           borderRadius: BorderRadius.circular(6),
@@ -445,7 +480,7 @@ class AuthFooterPrompt extends StatelessWidget {
             child: Text(
               actionText,
               style: textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
+                color: AppTheme.royalBlue,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -472,18 +507,16 @@ class AuthTypePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? colorScheme.primary : Colors.white,
+          color: selected ? AppTheme.royalBlue : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected ? colorScheme.primary : AuthColors.border,
+            color: selected ? AppTheme.royalBlue : AuthColors.border,
           ),
         ),
         child: Row(

@@ -41,7 +41,7 @@ class AuthUiState {
     this.isLoginPasswordVisible = false,
     this.isSignupPasswordVisible = false,
     this.isSignupConfirmPasswordVisible = false,
-    this.acceptsTerms = true,
+    this.acceptsTerms = false,
     this.accountType = AuthAccountType.personal,
     this.errorMessage,
     this.infoMessage,
@@ -191,10 +191,15 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
   }
 
   Future<void> signUp({
-    required String fullName,
+    required String firstName,
+    required String lastName,
+    required String gender,
+    required String birthday,
     required String username,
     required String email,
     required String password,
+    String? middleInitial,
+    String? suffix,
   }) async {
     await _runAuthRequest(() async {
       final isUsernameAvailable = await _authService.isUsernameAvailable(
@@ -208,7 +213,12 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
       }
 
       final response = await _authService.signUpWithEmail(
-        fullName: fullName,
+        firstName: firstName,
+        middleInitial: middleInitial,
+        lastName: lastName,
+        suffix: suffix,
+        gender: gender,
+        birthday: birthday,
         username: username,
         email: email,
         password: password,

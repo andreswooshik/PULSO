@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pulso/core/constants/app_constants.dart';
 import 'package:pulso/core/routing/app_routes.dart';
+import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/features/auth/presentation/widgets/auth_widgets.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 
@@ -15,20 +16,80 @@ class SignupScreen extends ConsumerStatefulWidget {
 
 class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _middleInitialController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _suffixController = TextEditingController();
+  final _birthdayController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  DateTime? _birthday;
+  String? _gender;
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController.addListener(_handleFormChanged);
+    _middleInitialController.addListener(_handleFormChanged);
+    _lastNameController.addListener(_handleFormChanged);
+    _suffixController.addListener(_handleFormChanged);
+    _birthdayController.addListener(_handleFormChanged);
+    _usernameController.addListener(_handleFormChanged);
+    _emailController.addListener(_handleFormChanged);
+    _passwordController.addListener(_handleFormChanged);
+    _confirmPasswordController.addListener(_handleFormChanged);
+  }
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _firstNameController.removeListener(_handleFormChanged);
+    _middleInitialController.removeListener(_handleFormChanged);
+    _lastNameController.removeListener(_handleFormChanged);
+    _suffixController.removeListener(_handleFormChanged);
+    _birthdayController.removeListener(_handleFormChanged);
+    _usernameController.removeListener(_handleFormChanged);
+    _emailController.removeListener(_handleFormChanged);
+    _passwordController.removeListener(_handleFormChanged);
+    _confirmPasswordController.removeListener(_handleFormChanged);
+    _firstNameController.dispose();
+    _middleInitialController.dispose();
+    _lastNameController.dispose();
+    _suffixController.dispose();
+    _birthdayController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _handleFormChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _pickBirthday() async {
+    final today = DateTime.now();
+    final initialDate =
+        _birthday ?? DateTime(today.year - 18, today.month, today.day);
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(today.year - 120),
+      lastDate: today,
+    );
+
+    if (pickedDate == null) {
+      return;
+    }
+
+    setState(() {
+      _birthday = pickedDate;
+      _birthdayController.text = _formatDateForDisplay(pickedDate);
+    });
   }
 
   Future<void> _submit() async {
@@ -49,7 +110,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     try {
       await authNotifier.signUp(
-        fullName: _nameController.text,
+        firstName: _firstNameController.text,
+        middleInitial: _middleInitialController.text,
+        lastName: _lastNameController.text,
+        suffix: _suffixController.text,
+        gender: _gender ?? '',
+        birthday: _formatDateForDatabase(_birthday),
         username: _usernameController.text,
         email: _emailController.text,
         password: _passwordController.text,
@@ -66,6 +132,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     final textTheme = Theme.of(context).textTheme;
     final authState = ref.watch(authUiProvider);
     final authNotifier = ref.read(authUiProvider.notifier);
+    final canSubmit = _canSubmit(authState);
 
     return AuthPage(
       compactTopPadding: 24,
@@ -92,12 +159,62 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               AuthInputField(
-                controller: _nameController,
-                label: 'Full name',
-                hintText: 'Juan Dela Cruz',
+                controller: _firstNameController,
+                label: 'First name (required)',
+                hintText: 'Juan',
                 icon: Icons.person_outline_rounded,
                 textInputAction: TextInputAction.next,
-                validator: _validateName,
+                validator: _validateFirstName,
+              ),
+              const SizedBox(height: 16),
+              AuthInputField(
+                controller: _middleInitialController,
+                label: 'Middle initial (optional)',
+                hintText: 'D',
+                icon: Icons.badge_outlined,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.characters,
+                validator: _validateMiddleInitial,
+              ),
+              const SizedBox(height: 16),
+              AuthInputField(
+                controller: _lastNameController,
+                label: 'Last name (required)',
+                hintText: 'Dela Cruz',
+                icon: Icons.person_outline_rounded,
+                textInputAction: TextInputAction.next,
+                validator: _validateLastName,
+              ),
+              const SizedBox(height: 16),
+              AuthInputField(
+                controller: _suffixController,
+                label: 'Suffix (optional)',
+                hintText: 'Jr., Sr., III',
+                icon: Icons.workspace_premium_outlined,
+                textInputAction: TextInputAction.next,
+                validator: _validateSuffix,
+              ),
+              const SizedBox(height: 16),
+              _GenderDropdown(
+                value: _gender,
+                onChanged: (value) {
+                  setState(() {
+                    _gender = value;
+                  });
+                },
+                validator: _validateGender,
+              ),
+              const SizedBox(height: 16),
+              AuthInputField(
+                controller: _birthdayController,
+                label: 'Birthday (required)',
+                hintText: 'Select your birthday',
+                icon: Icons.cake_outlined,
+                trailingIcon: Icons.calendar_today_outlined,
+                readOnly: true,
+                onTap: _pickBirthday,
+                onTrailingPressed: _pickBirthday,
+                validator: (_) => _validateBirthday(_birthday),
               ),
               const SizedBox(height: 16),
               AuthInputField(
@@ -164,8 +281,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         Text(
           'Account type',
           style: textTheme.labelLarge?.copyWith(
-            color: AuthColors.label,
-            fontWeight: FontWeight.w700,
+            color: AppTheme.midnight,
+            fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 10),
@@ -232,7 +349,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ],
                 ),
                 style: textTheme.bodyMedium?.copyWith(
-                  color: AuthColors.body,
+                  color: AppTheme.midnight.withValues(alpha: 0.72),
                   height: 1.35,
                 ),
               ),
@@ -243,7 +360,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         AuthPrimaryAction(
           label: 'Create account',
           isLoading: authState.isLoading,
-          onPressed: _submit,
+          onPressed: canSubmit ? _submit : null,
         ),
         const SizedBox(height: 28),
         AuthFooterPrompt(
@@ -258,15 +375,95 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     );
   }
 
-  String? _validateName(String? value) {
-    final name = value?.trim() ?? '';
+  String? _validateFirstName(String? value) {
+    final firstName = value?.trim() ?? '';
 
-    if (name.isEmpty) {
-      return 'Full name is required.';
+    if (firstName.isEmpty) {
+      return 'First name is required.';
     }
 
-    if (name.length > AppConstants.maxNameLength) {
-      return 'Name must be ${AppConstants.maxNameLength} characters or less.';
+    if (firstName.length > AppConstants.maxNameLength) {
+      return 'First name must be ${AppConstants.maxNameLength} characters or less.';
+    }
+
+    return null;
+  }
+
+  String? _validateMiddleInitial(String? value) {
+    final middleInitial = (value ?? '').trim().replaceAll('.', '');
+
+    if (middleInitial.isEmpty) {
+      return null;
+    }
+
+    if (!RegExp(r'^[A-Za-z]$').hasMatch(middleInitial)) {
+      return 'Use one letter only, like D.';
+    }
+
+    return null;
+  }
+
+  String? _validateLastName(String? value) {
+    final lastName = value?.trim() ?? '';
+
+    if (lastName.isEmpty) {
+      return 'Last name is required.';
+    }
+
+    if (lastName.length > AppConstants.maxNameLength) {
+      return 'Last name must be ${AppConstants.maxNameLength} characters or less.';
+    }
+
+    return null;
+  }
+
+  String? _validateSuffix(String? value) {
+    final suffix = value?.trim() ?? '';
+
+    if (suffix.isEmpty) {
+      return null;
+    }
+
+    if (suffix.length > 12) {
+      return 'Suffix must be 12 characters or less.';
+    }
+
+    if (!RegExp(r'^[A-Za-z0-9 .]+$').hasMatch(suffix)) {
+      return 'Use letters, numbers, spaces, or periods only.';
+    }
+
+    return null;
+  }
+
+  String? _validateGender(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Gender is required.';
+    }
+
+    return null;
+  }
+
+  String? _validateBirthday(DateTime? birthday) {
+    if (birthday == null) {
+      return 'Birthday is required.';
+    }
+
+    final today = DateTime.now();
+    final dateOnlyToday = DateTime(today.year, today.month, today.day);
+    final dateOnlyBirthday = DateTime(
+      birthday.year,
+      birthday.month,
+      birthday.day,
+    );
+
+    if (dateOnlyBirthday.isAfter(dateOnlyToday)) {
+      return 'Birthday cannot be in the future.';
+    }
+
+    if (dateOnlyBirthday.isBefore(
+      DateTime(today.year - 120, today.month, today.day),
+    )) {
+      return 'Enter a realistic birthday.';
     }
 
     return null;
@@ -336,5 +533,115 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
 
     return null;
+  }
+
+  String _formatDateForDisplay(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
+
+  String _formatDateForDatabase(DateTime? date) {
+    if (date == null) {
+      return '';
+    }
+
+    return _formatDateForDisplay(date);
+  }
+
+  bool _canSubmit(AuthUiState authState) {
+    return authState.acceptsTerms &&
+        !authState.isLoading &&
+        _validateFirstName(_firstNameController.text) == null &&
+        _validateMiddleInitial(_middleInitialController.text) == null &&
+        _validateLastName(_lastNameController.text) == null &&
+        _validateSuffix(_suffixController.text) == null &&
+        _validateGender(_gender) == null &&
+        _validateBirthday(_birthday) == null &&
+        _validateUsername(_usernameController.text) == null &&
+        _validateEmail(_emailController.text) == null &&
+        _validateNewPassword(_passwordController.text) == null &&
+        _validateConfirmPassword(_confirmPasswordController.text) == null;
+  }
+}
+
+class _GenderDropdown extends StatelessWidget {
+  final String? value;
+  final ValueChanged<String?> onChanged;
+  final String? Function(String?)? validator;
+
+  const _GenderDropdown({
+    required this.value,
+    required this.onChanged,
+    this.validator,
+  });
+
+  static const _options = ['Female', 'Male', 'Non-binary', 'Prefer not to say'];
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Gender (required)',
+          style: textTheme.labelLarge?.copyWith(
+            color: AuthColors.label,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: value,
+          validator: validator,
+          onChanged: onChanged,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          decoration: InputDecoration(
+            hintText: 'Select your gender',
+            prefixIcon: const Icon(Icons.wc_outlined),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AuthColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(
+                color: AppTheme.royalBlue,
+                width: 1.4,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.error,
+                width: 1.4,
+              ),
+            ),
+          ),
+          items: _options
+              .map(
+                (option) => DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(option),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
   }
 }
