@@ -58,6 +58,7 @@ class MyApp extends StatelessWidget {
       title: 'PULSO - Community Social App',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.light,
       routerConfig: appRouter,
     );
   }

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pulso/core/routing/app_routes.dart';
 import 'package:pulso/core/theme/app_theme.dart';
-import 'package:pulso/core/widgets/widgets.dart';
+import 'package:pulso/features/auth/presentation/widgets/auth_widgets.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -58,131 +58,98 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        body: SafeArea(
-          child: Form(
+      child: AuthPage(
+        compactTopPadding: 52,
+        regularTopPadding: 68,
+        children: [
+          const Center(
+            child: Text(
+              'Pulso',
+              style: TextStyle(
+                color: AppTheme.midnight,
+                fontSize: 42,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              'Feel the heartbeat of your community',
+              style: TextStyle(
+                color: AppTheme.midnight.withValues(alpha: 0.72),
+              ),
+            ),
+          ),
+          if (authState.errorMessage != null) ...[
+            const SizedBox(height: 24),
+            AuthMessageBanner(message: authState.errorMessage!, isError: true),
+          ],
+          if (authState.infoMessage != null) ...[
+            const SizedBox(height: 24),
+            AuthMessageBanner(message: authState.infoMessage!),
+          ],
+          const SizedBox(height: 42),
+          Form(
             key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 56),
-                const Center(
-                  child: Text(
-                    'Pulso',
-                    style: TextStyle(
-                      color: AppTheme.sampaguita,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    'Feel the heartbeat of your community',
-                    style: TextStyle(
-                      color: AppTheme.pearl.withValues(alpha: 0.78),
-                    ),
-                  ),
-                ),
-                if (authState.errorMessage != null) ...[
-                  const SizedBox(height: 24),
-                  _AuthMessage(message: authState.errorMessage!, isError: true),
-                ],
-                if (authState.infoMessage != null) ...[
-                  const SizedBox(height: 24),
-                  _AuthMessage(message: authState.infoMessage!),
-                ],
-                const SizedBox(height: 42),
-                AppTextField(
+                AuthInputField(
                   controller: _identifierController,
                   label: 'Username or email',
-                  hint: 'juan_delacruz or you@example.com',
+                  hintText: 'juan_delacruz or you@example.com',
+                  icon: Icons.alternate_email_rounded,
                   keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.next,
                   validator: _validateIdentifier,
                 ),
                 const SizedBox(height: 14),
-                TextFormField(
+                AuthInputField(
                   controller: _passwordController,
+                  label: 'Password',
+                  hintText: 'Enter your password',
+                  icon: Icons.lock_outline_rounded,
                   obscureText: !authState.isLoginPasswordVisible,
+                  trailingIcon: authState.isLoginPasswordVisible
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  onTrailingPressed: authNotifier.toggleLoginPasswordVisibility,
                   validator: _validatePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    suffixIcon: IconButton(
-                      tooltip: authState.isLoginPasswordVisible
-                          ? 'Hide password'
-                          : 'Show password',
-                      onPressed: authNotifier.toggleLoginPasswordVisibility,
-                      icon: Icon(
-                        authState.isLoginPasswordVisible
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.coral, AppTheme.royalBlue],
-                    ),
-                  ),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                    ),
-                    onPressed: authState.isLoading ? null : _submit,
-                    child: authState.isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text(
-                            'Log In',
-                            style: TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text('Forgot password?'),
-                ),
-                const SizedBox(height: 10),
-                const _DividerLabel(label: 'OR'),
-                const SizedBox(height: 20),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.g_mobiledata, size: 28),
-                  label: const Text('Continue with Google'),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.facebook),
-                  label: const Text('Continue with Facebook'),
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an account? "),
-                    TextButton(
-                      onPressed: () => context.push(AppRoutes.signup),
-                      child: const Text('Sign Up'),
-                    ),
-                  ],
                 ),
               ],
             ),
           ),
-        ),
+          const SizedBox(height: 16),
+          AuthPrimaryAction(
+            label: 'Log In',
+            isLoading: authState.isLoading,
+            onPressed: _submit,
+          ),
+          const SizedBox(height: 20),
+          TextButton(onPressed: () {}, child: const Text('Forgot password?')),
+          const SizedBox(height: 10),
+          const AuthDividerLabel(),
+          const SizedBox(height: 20),
+          AuthSocialButton(
+            icon: Icons.g_mobiledata,
+            label: 'Continue with Google',
+            onPressed: () {},
+          ),
+          const SizedBox(height: 12),
+          AuthSocialButton(
+            icon: Icons.facebook,
+            label: 'Continue with Facebook',
+            onPressed: () {},
+          ),
+          const SizedBox(height: 28),
+          AuthFooterPrompt(
+            text: "Don't have an account? ",
+            actionText: 'Sign Up',
+            onActionPressed: () => context.push(AppRoutes.signup),
+          ),
+        ],
       ),
     );
   }
@@ -203,56 +170,5 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     return null;
-  }
-}
-
-class _AuthMessage extends StatelessWidget {
-  final String message;
-  final bool isError;
-
-  const _AuthMessage({required this.message, this.isError = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isError
-            ? colorScheme.errorContainer
-            : colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(
-          color: isError
-              ? colorScheme.onErrorContainer
-              : colorScheme.onPrimaryContainer,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-class _DividerLabel extends StatelessWidget {
-  final String label;
-
-  const _DividerLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Divider(color: AppTheme.pearl.withValues(alpha: 0.24))),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text(label, style: const TextStyle(color: Color(0xFF9FB3D9))),
-        ),
-        Expanded(child: Divider(color: AppTheme.pearl.withValues(alpha: 0.24))),
-      ],
-    );
   }
 }

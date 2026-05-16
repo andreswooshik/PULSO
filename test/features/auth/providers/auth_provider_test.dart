@@ -54,7 +54,12 @@ void main() {
       ).thenAnswer((_) async => false);
 
       await notifier.signUp(
-        fullName: 'Juan Dela Cruz',
+        firstName: 'Juan',
+        middleInitial: 'D',
+        lastName: 'Dela Cruz',
+        suffix: 'Jr.',
+        gender: 'Male',
+        birthday: '2000-01-31',
         username: 'taken_user',
         email: 'juan@example.com',
         password: 'securePassword123',
@@ -67,7 +72,12 @@ void main() {
       );
       verifyNever(
         () => authService.signUpWithEmail(
-          fullName: any(named: 'fullName'),
+          firstName: any(named: 'firstName'),
+          middleInitial: any(named: 'middleInitial'),
+          lastName: any(named: 'lastName'),
+          suffix: any(named: 'suffix'),
+          gender: any(named: 'gender'),
+          birthday: any(named: 'birthday'),
           username: any(named: 'username'),
           email: any(named: 'email'),
           password: any(named: 'password'),
@@ -85,7 +95,12 @@ void main() {
       ).thenAnswer((_) async => true);
       when(
         () => authService.signUpWithEmail(
-          fullName: any(named: 'fullName'),
+          firstName: any(named: 'firstName'),
+          middleInitial: any(named: 'middleInitial'),
+          lastName: any(named: 'lastName'),
+          suffix: any(named: 'suffix'),
+          gender: any(named: 'gender'),
+          birthday: any(named: 'birthday'),
           username: any(named: 'username'),
           email: any(named: 'email'),
           password: any(named: 'password'),
@@ -94,7 +109,12 @@ void main() {
       ).thenAnswer((_) async => response);
 
       await notifier.signUp(
-        fullName: 'Juan Dela Cruz',
+        firstName: 'Juan',
+        middleInitial: 'D',
+        lastName: 'Dela Cruz',
+        suffix: 'Jr.',
+        gender: 'Male',
+        birthday: '2000-01-31',
         username: 'new_user',
         email: 'juan@example.com',
         password: 'securePassword123',
@@ -104,7 +124,12 @@ void main() {
       verify(() => authService.isUsernameAvailable('new_user')).called(1);
       verify(
         () => authService.signUpWithEmail(
-          fullName: 'Juan Dela Cruz',
+          firstName: 'Juan',
+          middleInitial: 'D',
+          lastName: 'Dela Cruz',
+          suffix: 'Jr.',
+          gender: 'Male',
+          birthday: '2000-01-31',
           username: 'new_user',
           email: 'juan@example.com',
           password: 'securePassword123',

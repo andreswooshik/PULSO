@@ -5,6 +5,14 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username text unique,
   email text,
+  first_name text,
+  middle_initial text,
+  last_name text,
+  suffix text,
+  gender text check (
+    gender in ('Female', 'Male', 'Non-binary', 'Prefer not to say')
+  ),
+  birthday date,
   full_name text,
   account_type text check (
     account_type in ('personal', 'business', 'organization')
@@ -18,6 +26,27 @@ add column if not exists username text;
 
 alter table public.profiles
 add column if not exists email text;
+
+alter table public.profiles
+add column if not exists first_name text;
+
+alter table public.profiles
+add column if not exists middle_initial text;
+
+alter table public.profiles
+add column if not exists last_name text;
+
+alter table public.profiles
+add column if not exists suffix text;
+
+alter table public.profiles
+add column if not exists gender text;
+
+alter table public.profiles
+add column if not exists birthday date;
+
+alter table public.profiles
+add column if not exists full_name text;
 
 alter table public.profiles
 add column if not exists account_type text default 'personal';
@@ -113,6 +142,12 @@ begin
     id,
     username,
     email,
+    first_name,
+    middle_initial,
+    last_name,
+    suffix,
+    gender,
+    birthday,
     full_name,
     account_type,
     updated_at
@@ -121,6 +156,12 @@ begin
     new.id,
     public.normalize_username(new.raw_user_meta_data->>'username'),
     new.email,
+    new.raw_user_meta_data->>'first_name',
+    nullif(new.raw_user_meta_data->>'middle_initial', ''),
+    new.raw_user_meta_data->>'last_name',
+    nullif(new.raw_user_meta_data->>'suffix', ''),
+    new.raw_user_meta_data->>'gender',
+    (new.raw_user_meta_data->>'birthday')::date,
     new.raw_user_meta_data->>'full_name',
     coalesce(new.raw_user_meta_data->>'account_type', 'personal'),
     now()
@@ -129,6 +170,12 @@ begin
   set
     username = excluded.username,
     email = excluded.email,
+    first_name = excluded.first_name,
+    middle_initial = excluded.middle_initial,
+    last_name = excluded.last_name,
+    suffix = excluded.suffix,
+    gender = excluded.gender,
+    birthday = excluded.birthday,
     full_name = excluded.full_name,
     account_type = excluded.account_type,
     updated_at = excluded.updated_at;

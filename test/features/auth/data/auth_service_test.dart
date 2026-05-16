@@ -62,7 +62,12 @@ void main() {
       ).thenAnswer((_) async => response);
 
       final result = await authService.signUpWithEmail(
-        fullName: ' Juan Dela Cruz ',
+        firstName: ' Juan ',
+        middleInitial: ' d ',
+        lastName: ' Dela Cruz ',
+        suffix: ' Jr. ',
+        gender: 'Male',
+        birthday: '2000-01-31',
         username: ' Juan_DelaCruz ',
         email: ' new@example.com ',
         password: 'securePassword123',
@@ -75,7 +80,13 @@ void main() {
           email: 'new@example.com',
           password: 'securePassword123',
           data: {
-            'full_name': 'Juan Dela Cruz',
+            'first_name': 'Juan',
+            'middle_initial': 'D',
+            'last_name': 'Dela Cruz',
+            'suffix': 'Jr.',
+            'gender': 'Male',
+            'birthday': '2000-01-31',
+            'full_name': 'Juan D. Dela Cruz Jr.',
             'username': 'juan_delacruz',
             'account_type': 'personal',
           },

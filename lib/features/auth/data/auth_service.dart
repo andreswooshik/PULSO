@@ -59,17 +59,43 @@ class AuthService {
   }
 
   Future<AuthResponse> signUpWithEmail({
-    required String fullName,
+    required String firstName,
+    required String lastName,
+    required String gender,
+    required String birthday,
     required String username,
     required String email,
     required String password,
     required String accountType,
+    String? middleInitial,
+    String? suffix,
   }) {
+    final cleanFirstName = firstName.trim();
+    final cleanLastName = lastName.trim();
+    final cleanMiddleInitial = middleInitial
+        ?.trim()
+        .replaceAll('.', '')
+        .toUpperCase();
+    final cleanSuffix = suffix?.trim();
+    final fullName = [
+      cleanFirstName,
+      if (cleanMiddleInitial != null && cleanMiddleInitial.isNotEmpty)
+        '$cleanMiddleInitial.',
+      cleanLastName,
+      if (cleanSuffix != null && cleanSuffix.isNotEmpty) cleanSuffix,
+    ].join(' ');
+
     return _client.auth.signUp(
       email: email.trim(),
       password: password,
       data: {
-        'full_name': fullName.trim(),
+        'first_name': cleanFirstName,
+        'middle_initial': cleanMiddleInitial,
+        'last_name': cleanLastName,
+        'suffix': cleanSuffix,
+        'gender': gender.trim(),
+        'birthday': birthday.trim(),
+        'full_name': fullName,
         'username': _normalizeUsername(username),
         'account_type': accountType,
       },
