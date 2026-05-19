@@ -1,18 +1,24 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'comment_record.dart';
+
 class CommentRepository {
   final SupabaseClient _client;
 
   CommentRepository(this._client);
 
-  Future<List<Map<String, dynamic>>> fetchForPost(String postId) {
-    return _client
+  Future<List<CommentRecord>> fetchForPost(String postId) async {
+    final rows = await _client
         .from('comments')
         .select(
           'id, content, created_at, user_id, profiles(username, avatar_url)',
         )
         .eq('post_id', postId)
         .order('created_at');
+
+    return (rows as List<dynamic>)
+        .map((row) => CommentRecord.fromJson(row as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> addComment({
