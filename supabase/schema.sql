@@ -108,9 +108,15 @@ alter table public.comments enable row level security;
 alter table public.follows enable row level security;
 
 drop policy if exists "profiles are readable by everyone" on public.profiles;
-create policy "profiles are readable by everyone"
+create policy "profiles are readable by user"
 on public.profiles for select
-using (true);
+using (auth.uid() = id);
+
+create or replace view public.public_profiles as
+select id, username, display_name, full_name, bio, avatar_url, created_at, updated_at
+from public.profiles;
+
+grant select on public.public_profiles to anon, authenticated;
 
 drop policy if exists "users can insert their profile" on public.profiles;
 create policy "users can insert their profile"
@@ -224,25 +230,6 @@ grant execute on function public.normalize_username(text) to authenticated;
 grant execute on function public.is_username_available(text) to anon;
 grant execute on function public.is_username_available(text) to authenticated;
 
-create or replace function public.get_email_by_username(
-  requested_username text
-)
-returns text
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select email
-  from public.profiles
-  where public.normalize_username(username) =
-    public.normalize_username(requested_username)
-  limit 1;
-$$;
-
-grant execute on function public.get_email_by_username(text) to anon;
-grant execute on function public.get_email_by_username(text) to authenticated;
-
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -317,7 +304,7 @@ select
   p.id as profile_id,
   coalesce(followers.count, 0)::int as followers_count,
   coalesce(following.count, 0)::int as following_count
-from public.profiles p
+from public.public_profiles p
 left join (
   select following_id, count(*) as count
   from public.follows

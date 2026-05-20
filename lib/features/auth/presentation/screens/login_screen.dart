@@ -15,12 +15,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _identifierController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -35,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(authUiProvider.notifier)
           .signIn(
-            identifier: _identifierController.text,
+            email: _emailController.text,
             password: _passwordController.text,
           );
     } finally {
@@ -94,10 +94,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ],
               const SizedBox(height: 42),
               AppTextField(
-                controller: _identifierController,
-                label: 'Username or Email',
-                hint: 'juan_delacruz or you@example.com',
-                keyboardType: TextInputType.text,
+                controller: _emailController,
+                label: 'Email Address',
+                hint: 'you@example.com',
+                keyboardType: TextInputType.emailAddress,
                 validator: _validateIdentifier,
               ),
               const SizedBox(height: 14),

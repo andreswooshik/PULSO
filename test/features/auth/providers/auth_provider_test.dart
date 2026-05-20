@@ -19,26 +19,26 @@ void main() {
   });
 
   group('AuthUiNotifier sign in', () {
-    test('passes username or email identifier to auth service', () async {
+    test('passes email to auth service', () async {
       final notifier = AuthUiNotifier(authService);
       final response = AuthResponse(user: _testUser());
 
       when(
         () => authService.signInWithEmail(
-          identifier: any(named: 'identifier'),
+          email: any(named: 'email'),
           password: any(named: 'password'),
         ),
       ).thenAnswer((_) async => response);
 
       await notifier.signIn(
-        identifier: 'juan_delacruz',
+        email: 'user@example.com',
         password: 'securePassword123',
       );
 
       expect(notifier.state.requestStatus, AuthRequestStatus.success);
       verify(
         () => authService.signInWithEmail(
-          identifier: 'juan_delacruz',
+          email: 'user@example.com',
           password: 'securePassword123',
         ),
       ).called(1);

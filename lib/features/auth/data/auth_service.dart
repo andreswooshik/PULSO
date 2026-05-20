@@ -50,12 +50,15 @@ class AuthService {
   }
 
   Future<AuthResponse> signInWithEmail({
-    required String identifier,
+    required String email,
     required String password,
   }) async {
-    final email = await _resolveEmailForSignIn(identifier);
+    final cleanEmail = email.trim();
+    if (!_isEmail(cleanEmail)) {
+      throw const AuthServiceException('Please enter a valid email address.');
+    }
 
-    return _client.auth.signInWithPassword(email: email, password: password);
+    return _client.auth.signInWithPassword(email: cleanEmail, password: password);
   }
 
   Future<AuthResponse> signUpWithEmail({
@@ -127,32 +130,6 @@ class AuthService {
 
   Future<void> signOut() {
     return _client.auth.signOut();
-  }
-
-  Future<String> _resolveEmailForSignIn(String identifier) async {
-    final cleanIdentifier = identifier.trim();
-    if (_isEmail(cleanIdentifier)) {
-      return cleanIdentifier;
-    }
-
-    try {
-      final result = await _client.rpc(
-        'get_email_by_username',
-        params: {'requested_username': _normalizeUsername(cleanIdentifier)},
-      );
-
-      if (result is String && result.trim().isNotEmpty) {
-        return result.trim();
-      }
-
-      throw const AuthServiceException('No account found for that username.');
-    } on AuthServiceException {
-      rethrow;
-    } catch (_) {
-      throw const AuthServiceException(
-        'Could not find an account with that username.',
-      );
-    }
   }
 
   bool _isEmail(String value) {

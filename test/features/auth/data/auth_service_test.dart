@@ -35,7 +35,7 @@ void main() {
         ).thenAnswer((_) async => response);
 
         final result = await authService.signInWithEmail(
-          identifier: ' user@example.com ',
+          email: ' user@example.com ',
           password: 'securePassword123',
         );
 

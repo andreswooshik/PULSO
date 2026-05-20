@@ -169,12 +169,12 @@ class AuthUiNotifier extends StateNotifier<AuthUiState> {
   }
 
   Future<void> signIn({
-    required String identifier,
+    required String email,
     required String password,
   }) async {
     await _runAuthRequest(() async {
       final response = await _authService.signInWithEmail(
-        identifier: identifier,
+        email: email,
         password: password,
       );
       final user = response.session?.user ?? response.user;
