@@ -13,7 +13,7 @@ class CommentsSheet extends StatelessWidget {
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: AppTheme.pearl,
+            color: Colors.black,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
@@ -38,7 +38,7 @@ class CommentsSheet extends StatelessWidget {
                   ],
                 ),
               ),
-              const Divider(height: 1, color: Color(0xFFD8D4C4)),
+              const Divider(height: 1, color: Color(0xFF1B2435)),
               Expanded(
                 child: ListView(
                   controller: scrollController,
@@ -76,11 +76,8 @@ class CommentsSheet extends StatelessWidget {
                   child: Row(
                     children: [
                       const CircleAvatar(
-                        backgroundColor: AppTheme.gold,
-                        child: Text(
-                          'P',
-                          style: TextStyle(color: AppTheme.midnight),
-                        ),
+                        backgroundColor: Color(0xFF1D3557),
+                        child: Text('P'),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -130,11 +127,8 @@ class _CommentTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            backgroundColor: AppTheme.royalBlue,
-            child: Text(
-              initials,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
+            backgroundColor: AppTheme.indigo,
+            child: Text(initials, style: const TextStyle(fontSize: 12)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -143,7 +137,7 @@ class _CommentTile extends StatelessWidget {
               children: [
                 RichText(
                   text: TextSpan(
-                    style: const TextStyle(color: AppTheme.midnight),
+                    style: const TextStyle(color: AppTheme.sampaguita),
                     children: [
                       TextSpan(
                         text: '$username  ',
@@ -157,7 +151,7 @@ class _CommentTile extends StatelessWidget {
                 Text(
                   meta,
                   style: const TextStyle(
-                    color: Color(0xFF667085),
+                    color: Color(0xFF8EA4CA),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -167,7 +161,7 @@ class _CommentTile extends StatelessWidget {
           ),
           Icon(
             liked ? Icons.thumb_up_alt : Icons.thumb_up_alt_outlined,
-            color: liked ? AppTheme.royalBlue : AppTheme.midnight,
+            color: liked ? AppTheme.gold : AppTheme.sampaguita,
             size: 20,
           ),
         ],

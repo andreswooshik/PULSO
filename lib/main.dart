@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,10 +12,12 @@ Future<void> main() async {
   const supabaseUrlFromDefine = String.fromEnvironment('SUPABASE_URL');
   const supabaseKeyFromDefine = String.fromEnvironment('SUPABASE_ANON_KEY');
 
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (error) {
-    debugPrint('Warning: Could not load .env file: $error');
+  if (!kIsWeb) {
+    try {
+      await dotenv.load(fileName: '.env');
+    } catch (error) {
+      debugPrint('Warning: Could not load .env file: $error');
+    }
   }
 
   try {
@@ -25,8 +28,11 @@ Future<void> main() async {
         ? supabaseKeyFromDefine
         : dotenv.env['SUPABASE_ANON_KEY'];
 
-    if (_hasUsableSupabaseCredentials(supabaseUrl, supabaseKey)) {
-      await Supabase.initialize(url: supabaseUrl!, anonKey: supabaseKey!);
+    if (supabaseUrl != null &&
+        supabaseKey != null &&
+        supabaseUrl.isNotEmpty &&
+        supabaseKey.isNotEmpty) {
+      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
     } else {
       debugPrint(
         'Warning: Supabase credentials missing. App will run in limited mode without backend.',
@@ -37,16 +43,6 @@ Future<void> main() async {
   }
 
   runApp(const ProviderScope(child: MyApp()));
-}
-
-bool _hasUsableSupabaseCredentials(String? url, String? key) {
-  final cleanUrl = url?.trim() ?? '';
-  final cleanKey = key?.trim() ?? '';
-
-  return cleanUrl.isNotEmpty &&
-      cleanKey.isNotEmpty &&
-      !cleanUrl.contains('your-project-ref') &&
-      cleanKey != 'your-supabase-anon-key';
 }
 
 class MyApp extends StatelessWidget {

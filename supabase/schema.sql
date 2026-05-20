@@ -55,9 +55,6 @@ create table if not exists public.follows (
   check (follower_id <> following_id)
 );
 
-alter table public.comments
-add column if not exists updated_at timestamptz not null default now();
-
 alter table public.profiles
 add column if not exists email text;
 
@@ -85,6 +82,13 @@ add column if not exists full_name text;
 alter table public.profiles
 add column if not exists account_type text default 'personal';
 
+alter table public.comments
+add column if not exists updated_at timestamptz not null default now();
+
+create unique index if not exists profiles_username_lower_key
+on public.profiles (lower(trim(username)))
+where username is not null;
+
 create index if not exists comments_post_id_created_at_idx
 on public.comments (post_id, created_at asc);
 
@@ -103,18 +107,93 @@ alter table public.likes enable row level security;
 alter table public.comments enable row level security;
 alter table public.follows enable row level security;
 
+drop policy if exists "profiles are readable by everyone" on public.profiles;
 create policy "profiles are readable by everyone"
 on public.profiles for select
 using (true);
 
+drop policy if exists "users can insert their profile" on public.profiles;
 create policy "users can insert their profile"
 on public.profiles for insert
 with check (auth.uid() = id);
 
+drop policy if exists "users can update their profile" on public.profiles;
 create policy "users can update their profile"
 on public.profiles for update
 using (auth.uid() = id)
 with check (auth.uid() = id);
+
+drop policy if exists "posts are readable by everyone" on public.posts;
+create policy "posts are readable by everyone"
+on public.posts for select
+using (true);
+
+drop policy if exists "users can create posts" on public.posts;
+create policy "users can create posts"
+on public.posts for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "users can update their posts" on public.posts;
+create policy "users can update their posts"
+on public.posts for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "users can delete their posts" on public.posts;
+create policy "users can delete their posts"
+on public.posts for delete
+using (auth.uid() = user_id);
+
+drop policy if exists "likes are readable by everyone" on public.likes;
+create policy "likes are readable by everyone"
+on public.likes for select
+using (true);
+
+drop policy if exists "users can like as themselves" on public.likes;
+create policy "users can like as themselves"
+on public.likes for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "users can remove their likes" on public.likes;
+create policy "users can remove their likes"
+on public.likes for delete
+using (auth.uid() = user_id);
+
+drop policy if exists "comments are readable by everyone" on public.comments;
+create policy "comments are readable by everyone"
+on public.comments for select
+using (true);
+
+drop policy if exists "users can comment as themselves" on public.comments;
+create policy "users can comment as themselves"
+on public.comments for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "users can update their comments" on public.comments;
+create policy "users can update their comments"
+on public.comments for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "users can delete their comments" on public.comments;
+create policy "users can delete their comments"
+on public.comments for delete
+using (auth.uid() = user_id);
+
+drop policy if exists "follows are readable by everyone" on public.follows;
+create policy "follows are readable by everyone"
+on public.follows for select
+using (true);
+
+drop policy if exists "users can follow as themselves" on public.follows;
+create policy "users can follow as themselves"
+on public.follows for insert
+with check (auth.uid() = follower_id);
+
+drop policy if exists "users can unfollow as themselves" on public.follows;
+create policy "users can unfollow as themselves"
+on public.follows for delete
+using (auth.uid() = follower_id);
 
 create or replace function public.normalize_username(username text)
 returns text
@@ -224,71 +303,6 @@ after insert on auth.users
 for each row
 execute procedure public.handle_new_user();
 
-create policy "posts are readable by everyone"
-on public.posts for select
-using (true);
-
-create policy "users can create posts"
-on public.posts for insert
-with check (auth.uid() = user_id);
-
-create policy "users can update their posts"
-on public.posts for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
-create policy "users can delete their posts"
-on public.posts for delete
-using (auth.uid() = user_id);
-
-create policy "likes are readable by everyone"
-on public.likes for select
-using (true);
-
-create policy "users can like as themselves"
-on public.likes for insert
-with check (auth.uid() = user_id);
-
-create policy "users can remove their likes"
-on public.likes for delete
-using (auth.uid() = user_id);
-
-drop policy if exists "comments are readable by everyone" on public.comments;
-create policy "comments are readable by everyone"
-on public.comments for select
-using (true);
-
-drop policy if exists "users can comment as themselves" on public.comments;
-create policy "users can comment as themselves"
-on public.comments for insert
-with check (auth.uid() = user_id);
-
-drop policy if exists "users can update their comments" on public.comments;
-create policy "users can update their comments"
-on public.comments for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
-drop policy if exists "users can delete their comments" on public.comments;
-create policy "users can delete their comments"
-on public.comments for delete
-using (auth.uid() = user_id);
-
-drop policy if exists "follows are readable by everyone" on public.follows;
-create policy "follows are readable by everyone"
-on public.follows for select
-using (true);
-
-drop policy if exists "users can follow as themselves" on public.follows;
-create policy "users can follow as themselves"
-on public.follows for insert
-with check (auth.uid() = follower_id);
-
-drop policy if exists "users can unfollow as themselves" on public.follows;
-create policy "users can unfollow as themselves"
-on public.follows for delete
-using (auth.uid() = follower_id);
-
 create or replace view public.post_comment_counts
 with (security_invoker = true) as
 select
@@ -318,16 +332,4 @@ left join (
 grant select on public.post_comment_counts to anon, authenticated;
 grant select on public.profile_follow_counts to anon, authenticated;
 
-select
-  c.relname as table_name,
-  c.relrowsecurity as rls_enabled,
-  p.policyname,
-  p.cmd as policy_command
-from pg_class c
-join pg_namespace n on n.oid = c.relnamespace
-left join pg_policies p
-  on p.schemaname = n.nspname
-  and p.tablename = c.relname
-where n.nspname = 'public'
-  and c.relname in ('comments', 'follows')
-order by c.relname, p.policyname;
+notify pgrst, 'reload schema';

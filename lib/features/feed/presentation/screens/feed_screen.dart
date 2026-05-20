@@ -27,7 +27,7 @@ class FeedScreen extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Login',
-            onPressed: () => context.go(AppRoutes.login),
+            onPressed: () => context.push(AppRoutes.login),
             icon: const Icon(Icons.login),
           ),
         ],
@@ -54,13 +54,13 @@ class _HeroPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.ink,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFD8D4C4)),
+        border: Border.all(color: const Color(0xFF21385C)),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFFFF), AppTheme.pearl],
+          colors: [Color(0xFF07101F), Color(0xFF10284C), Color(0xFF10131A)],
         ),
       ),
       child: Column(
@@ -69,7 +69,7 @@ class _HeroPanel extends StatelessWidget {
           const Text(
             'Feel the heartbeat of your community',
             style: TextStyle(
-              color: AppTheme.midnight,
+              color: AppTheme.sampaguita,
               fontSize: 22,
               fontWeight: FontWeight.w800,
               height: 1.12,
@@ -78,7 +78,7 @@ class _HeroPanel extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'A shared space for posts, updates, and everyday Filipino connection.',
-            style: TextStyle(color: AppTheme.midnight.withValues(alpha: 0.72)),
+            style: TextStyle(color: AppTheme.pearl.withValues(alpha: 0.76)),
           ),
           const SizedBox(height: 16),
           Row(
@@ -105,22 +105,16 @@ class _SignalChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: AppTheme.pearl,
+        color: Colors.black.withValues(alpha: 0.26),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: AppTheme.gold.withValues(alpha: 0.72)),
+        border: Border.all(color: AppTheme.gold.withValues(alpha: 0.32)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: AppTheme.gold, size: 16),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.midnight,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -168,9 +162,9 @@ class _PostPreviewCard extends StatelessWidget {
             Container(
               height: 170,
               decoration: BoxDecoration(
-                color: AppTheme.pearl,
+                color: const Color(0xFF101B2E),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFD8D4C4)),
+                border: Border.all(color: const Color(0xFF243B63)),
               ),
               child: const Center(
                 child: Icon(
@@ -201,7 +195,7 @@ class _PostPreviewCard extends StatelessWidget {
                 Text(
                   '142 thumbs up',
                   style: TextStyle(
-                    color: AppTheme.midnight.withValues(alpha: 0.7),
+                    color: AppTheme.pearl.withValues(alpha: 0.7),
                   ),
                 ),
               ],
