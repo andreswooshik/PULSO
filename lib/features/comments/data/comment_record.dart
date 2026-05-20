@@ -16,7 +16,7 @@ class CommentRecord {
   });
 
   factory CommentRecord.fromJson(Map<String, dynamic> json) {
-    final profile = (json['profiles'] as Map<String, dynamic>?) ?? {};
+    final profile = (json['public_profiles'] as Map<String, dynamic>?) ?? {};
 
     return CommentRecord(
       id: json['id'] as String,

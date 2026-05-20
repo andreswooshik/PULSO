@@ -11,7 +11,7 @@ class CommentRepository {
     final rows = await _client
         .from('comments')
         .select(
-          'id, content, created_at, user_id, profiles(username, avatar_url)',
+          'id, content, created_at, user_id, public_profiles(username, avatar_url)',
         )
         .eq('post_id', postId)
         .order('created_at');
