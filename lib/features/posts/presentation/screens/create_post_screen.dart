@@ -1,11 +1,15 @@
-import 'dart:typed_data';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pulso/core/routing/app_routes.dart';
 import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/core/widgets/widgets.dart';
+import 'package:pulso/features/feed/data/feed_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -15,13 +19,22 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _captionController = TextEditingController();
   final _picker = ImagePicker();
+  late final FeedRepository _repository;
 
   XFile? _pickedImage;
   CroppedFile? _croppedImage;
   Uint8List? _previewBytes;
   bool _isCropping = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = FeedRepository(Supabase.instance.client);
+  }
 
   @override
   void dispose() {
@@ -147,52 +160,112 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
   }
 
-  void _handlePost() {
-    if (_croppedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Crop the image before posting.')),
-      );
+  Future<void> _submit() async {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid || _isSubmitting) {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cropped image is ready to post.')),
-    );
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await _repository.createPost(caption: _captionController.text);
+      if (!mounted) {
+        return;
+      }
+
+      final message = _previewBytes == null
+          ? 'Post published to the community feed.'
+          : 'Post published. Image preview is saved locally while upload support is being finished.';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      context.go(AppRoutes.feed);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not publish your post yet.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final hasSelectedImage = _pickedImage != null;
-    final isReadyToPost = _croppedImage != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Create Post')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _ImageComposer(
-            previewBytes: _previewBytes,
-            canCrop: hasSelectedImage,
-            isCropping: _isCropping,
-            onChooseImage: _chooseImage,
-            onCropImage: _cropImage,
-            onRemoveImage: _removeImage,
-          ),
-          const SizedBox(height: 16),
-          AppTextField(
-            controller: _captionController,
-            label: 'Caption',
-            hint: 'Share something with the community',
-            maxLines: 4,
-          ),
-          const SizedBox(height: 16),
-          CustomButton(
-            label: isReadyToPost ? 'Post' : 'Crop image to post',
-            onPressed: _handlePost,
-          ),
-        ],
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text(
+              'Share a community update',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Caption posts are live now. Image selection and cropping are ready while upload wiring is being finished.',
+              style: TextStyle(color: Color(0xFF667085), height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            _ImageComposer(
+              previewBytes: _previewBytes,
+              canCrop: hasSelectedImage,
+              isCropping: _isCropping,
+              onChooseImage: _chooseImage,
+              onCropImage: _cropImage,
+              onRemoveImage: _removeImage,
+            ),
+            if (_croppedImage != null || _previewBytes != null) ...[
+              const SizedBox(height: 12),
+              const InlineMessage(
+                message:
+                    'Image preview is ready. Publishing still sends the caption while full image upload is being connected.',
+              ),
+            ],
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _captionController,
+              label: 'Caption',
+              hint: 'Share something with the community',
+              maxLines: 5,
+              validator: _validateCaption,
+            ),
+            const SizedBox(height: 16),
+            CustomButton(
+              label: _isSubmitting ? 'Publishing...' : 'Post',
+              onPressed: _submit,
+              isLoading: _isSubmitting,
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  String? _validateCaption(String? value) {
+    final caption = value?.trim() ?? '';
+    if (caption.isEmpty) {
+      return 'Caption is required.';
+    }
+    if (caption.length > 500) {
+      return 'Caption must be 500 characters or less.';
+    }
+    return null;
   }
 }
 
@@ -281,3 +354,4 @@ class _ImageComposer extends StatelessWidget {
     );
   }
 }
+

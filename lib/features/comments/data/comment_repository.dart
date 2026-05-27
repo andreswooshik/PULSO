@@ -1,6 +1,5 @@
+import 'package:pulso/features/comments/data/comment_record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'comment_record.dart';
 
 class CommentRepository {
   final SupabaseClient _client;
@@ -11,13 +10,15 @@ class CommentRepository {
     final rows = await _client
         .from('comments')
         .select(
-          'id, content, created_at, user_id, public_profiles(username, avatar_url)',
+          'id, post_id, content, created_at, user_id, '
+          'public_profiles(username, avatar_url)',
         )
         .eq('post_id', postId)
         .order('created_at');
 
-    return (rows as List<dynamic>)
-        .map((row) => CommentRecord.fromJson(row as Map<String, dynamic>))
+    return rows
+        .cast<Map<String, dynamic>>()
+        .map(CommentRecord.fromMap)
         .toList();
   }
 
