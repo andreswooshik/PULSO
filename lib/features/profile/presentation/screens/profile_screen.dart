@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
+import 'package:pulso/features/profile/data/profile_record.dart';
 import 'package:pulso/features/profile/presentation/widgets/profile_widgets.dart';
 import 'package:pulso/features/profile/providers/profile_provider.dart';
 
@@ -13,57 +14,111 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  void _editProfileDialog(
-    BuildContext context,
-    String currentDisplayName,
-    String currentBio,
-  ) {
-    final displayNameController = TextEditingController(
-      text: currentDisplayName,
+  String _profileTitle(ProfileRecord profile) {
+    final fullName = profile.fullName?.trim();
+    if (fullName != null && fullName.isNotEmpty) {
+      return fullName;
+    }
+
+    return profile.username;
+  }
+
+  String? _profileBio(ProfileRecord profile) {
+    final bio = profile.bio?.trim();
+    if (bio == null || bio.isEmpty) {
+      return null;
+    }
+
+    return bio;
+  }
+
+  Future<void> _saveProfileChanges({
+    required String profileId,
+    required String currentUsername,
+    required BuildContext dialogContext,
+    required TextEditingController usernameController,
+    required TextEditingController bioController,
+  }) async {
+    final saved = await ref
+        .read(profileControllerProvider.notifier)
+        .updateProfile(
+          userId: profileId,
+          currentUsername: currentUsername,
+          username: usernameController.text.trim(),
+          bio: bioController.text.trim(),
+        );
+
+    if (!mounted || !dialogContext.mounted) {
+      return;
+    }
+
+    if (saved) {
+      Navigator.of(dialogContext).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile updated')));
+      return;
+    }
+
+    final error = ref.read(profileControllerProvider).error;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error?.toString() ?? 'Profile update failed')),
     );
+  }
+
+  Future<void> _editProfileDialog(
+    BuildContext context,
+    String profileId,
+    String currentUsername,
+    String currentBio,
+  ) async {
+    final usernameController = TextEditingController(text: currentUsername);
     final bioController = TextEditingController(text: currentBio);
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Profile'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: displayNameController,
-                decoration: const InputDecoration(labelText: 'Display Name'),
+    try {
+      await showDialog(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Edit Profile'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: bioController,
+                  decoration: const InputDecoration(labelText: 'Bio'),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: bioController,
-                decoration: const InputDecoration(labelText: 'Bio'),
-                maxLines: 3,
+              FilledButton(
+                onPressed: () => _saveProfileChanges(
+                  profileId: profileId,
+                  currentUsername: currentUsername,
+                  dialogContext: dialogContext,
+                  usernameController: usernameController,
+                  bioController: bioController,
+                ),
+                child: const Text('Save'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                ref
-                    .read(profileControllerProvider.notifier)
-                    .updateProfile(
-                      displayName: displayNameController.text,
-                      bio: bioController.text,
-                    );
-                Navigator.of(context).pop();
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
+          );
+        },
+      );
+    } finally {
+      usernameController.dispose();
+      bioController.dispose();
+    }
   }
 
   @override
@@ -84,10 +139,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
       body: profileAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, st) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Failed to load profile. Error:\n$e',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ),
         data: (profile) {
           if (profile == null) {
             return const Center(child: Text('Profile not found'));
           }
+
+          final profileTitle = _profileTitle(profile);
+          final bio = _profileBio(profile);
 
           return Stack(
             children: [
@@ -115,9 +184,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            profile.displayName ??
-                                profile.fullName ??
-                                profile.username,
+                            profileTitle,
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
@@ -127,8 +194,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             icon: const Icon(Icons.edit, size: 18),
                             onPressed: () => _editProfileDialog(
                               context,
-                              profile.displayName ?? '',
-                              profile.bio ?? '',
+                              profile.id,
+                              profile.username,
+                              bio ?? '',
                             ),
                           ),
                         ],
@@ -144,10 +212,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                       ),
-                    if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+                    if (bio != null) ...[
                       const SizedBox(height: 16),
                       Text(
-                        profile.bio!,
+                        bio,
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 16),
                       ),
@@ -183,8 +251,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
       ),
     );
   }

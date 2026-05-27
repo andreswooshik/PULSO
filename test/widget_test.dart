@@ -12,7 +12,7 @@ void main() {
 
     expect(find.text('Pulso'), findsOneWidget);
     expect(find.text('Log In'), findsOneWidget);
-    expect(find.text('Username or Email'), findsOneWidget);
+    expect(find.text('Email or Username'), findsOneWidget);
     expect(find.text('Feed'), findsNothing);
   });
 

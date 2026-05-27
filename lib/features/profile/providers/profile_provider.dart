@@ -11,7 +11,8 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 
 final currentProfileProvider = FutureProvider<ProfileRecord?>((ref) async {
   final authState = ref.watch(authUiProvider);
-  final userId = authState.userId;
+  final userId =
+      authState.userId ?? Supabase.instance.client.auth.currentUser?.id;
 
   if (userId == null) {
     return null;
@@ -31,23 +32,29 @@ class ProfileController extends StateNotifier<AsyncValue<void>> {
 
   ProfileController(this._ref) : super(const AsyncData(null));
 
-  Future<void> updateProfile({String? displayName, String? bio}) async {
+  Future<bool> updateProfile({
+    required String userId,
+    required String currentUsername,
+    String? username,
+    String? bio,
+  }) async {
     state = const AsyncLoading();
     try {
-      final userId = _ref.read(authUiProvider).userId;
-      if (userId == null) throw Exception('Not authenticated');
-
       final repo = _ref.read(profileRepositoryProvider);
       await repo.updateProfile(
         userId: userId,
-        displayName: displayName,
+        username: username,
+        currentUsername: currentUsername,
         bio: bio,
       );
 
       _ref.invalidate(currentProfileProvider);
+      await _ref.read(currentProfileProvider.future);
       state = const AsyncData(null);
+      return true;
     } catch (e, st) {
       state = AsyncError(e, st);
+      return false;
     }
   }
 
