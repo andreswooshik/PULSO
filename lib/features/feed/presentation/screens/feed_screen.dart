@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulso/core/routing/app_routes.dart';
 import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/features/comments/presentation/widgets/comments_sheet.dart';
+import 'package:pulso/features/auth/providers/auth_provider.dart';
 
-class FeedScreen extends StatelessWidget {
+class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
 
   void _showComments(BuildContext context) {
@@ -17,7 +19,9 @@ class FeedScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isAuthenticated = ref.watch(authUiProvider).isAuthenticated;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -25,11 +29,20 @@ class FeedScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.2),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Login',
-            onPressed: () => context.push(AppRoutes.login),
-            icon: const Icon(Icons.login),
-          ),
+          if (!isAuthenticated)
+            IconButton(
+              tooltip: 'Login',
+              onPressed: () => context.push(AppRoutes.login),
+              icon: const Icon(Icons.login),
+            )
+          else
+            IconButton(
+              tooltip: 'Logout',
+              onPressed: () {
+                ref.read(authUiProvider.notifier).signOut();
+              },
+              icon: const Icon(Icons.logout),
+            ),
         ],
       ),
       body: ListView(

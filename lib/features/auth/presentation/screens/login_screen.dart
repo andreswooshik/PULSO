@@ -35,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(authUiProvider.notifier)
           .signIn(
-            email: _emailController.text,
+            identifier: _emailController.text,
             password: _passwordController.text,
           );
     } finally {
@@ -95,8 +95,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 42),
               AppTextField(
                 controller: _emailController,
-                label: 'Email Address',
-                hint: 'you@example.com',
+                label: 'Email or Username',
+                hint: 'you@example.com or username',
                 keyboardType: TextInputType.emailAddress,
                 validator: _validateIdentifier,
               ),

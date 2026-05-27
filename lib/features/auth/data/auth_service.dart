@@ -49,16 +49,40 @@ class AuthService {
     return _client.auth.onAuthStateChange;
   }
 
-  Future<AuthResponse> signInWithEmail({
-    required String email,
+  Future<AuthResponse> signInWithEmailOrUsername({
+    required String identifier,
     required String password,
   }) async {
-    final cleanEmail = email.trim();
-    if (!_isEmail(cleanEmail)) {
-      throw const AuthServiceException('Please enter a valid email address.');
+    final cleanIdentifier = identifier.trim();
+
+    String loginEmail = cleanIdentifier;
+
+    // If identifier is not an email, assume it is a username and look up the email
+    if (!_isEmail(cleanIdentifier)) {
+      try {
+        final response = await _client.rpc(
+          'get_email_by_username',
+          params: {'p_username': cleanIdentifier},
+        );
+        
+        if (response != null && response.toString().isNotEmpty) {
+          loginEmail = response as String;
+        } else {
+          // If RPC returns null or we can't find it, Supabase will just fail the login attempt
+          // Or we can throw an explicit error.
+          throw const AuthServiceException('Username not found or invalid.');
+        }
+      } catch (e) {
+        if (e is AuthServiceException) rethrow; // Pass up known exception
+        throw AuthServiceException(
+            'Could not resolve username. Please ensure the database setup is complete or try using an email.');
+      }
     }
 
-    return _client.auth.signInWithPassword(email: cleanEmail, password: password);
+    return _client.auth.signInWithPassword(
+      email: loginEmail,
+      password: password,
+    );
   }
 
   Future<AuthResponse> signUpWithEmail({
