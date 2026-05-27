@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pulso/features/profile/data/profile_record.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -89,19 +90,22 @@ class ProfileRepository {
     return username.trim().toLowerCase();
   }
 
-  Future<String?> uploadAvatar(String userId, File imageFile) async {
+  Future<String?> uploadAvatar(String userId, XFile imageFile) async {
     try {
-      final fileExt = imageFile.path.split('.').last;
-      final fileName =
-          '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final fileExt = _imageExtension(imageFile.name);
+      final fileName = '$userId/${_uuidV4()}.$fileExt';
+      final imageBytes = await imageFile.readAsBytes();
 
-      // Ensure the 'avatars' bucket exists in Supabase
       await _client.storage
           .from('avatars')
-          .upload(
+          .uploadBinary(
             fileName,
-            imageFile,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+            imageBytes,
+            fileOptions: FileOptions(
+              cacheControl: '3600',
+              contentType: fileExt == 'jpg' ? 'image/jpeg' : 'image/$fileExt',
+              upsert: true,
+            ),
           );
 
       final imageUrlResponse = _client.storage
@@ -112,6 +116,33 @@ class ProfileRepository {
       debugPrint('Error uploading avatar: $e');
       return null;
     }
+  }
+
+  String _imageExtension(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    if (extension == 'png' || extension == 'webp') {
+      return extension;
+    }
+
+    return 'jpg';
+  }
+
+  String _uuidV4() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    String hexByte(int byte) => byte.toRadixString(16).padLeft(2, '0');
+    final hex = bytes.map(hexByte).join();
+
+    return [
+      hex.substring(0, 8),
+      hex.substring(8, 12),
+      hex.substring(12, 16),
+      hex.substring(16, 20),
+      hex.substring(20),
+    ].join('-');
   }
 }
 

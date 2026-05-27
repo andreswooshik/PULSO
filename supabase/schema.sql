@@ -113,9 +113,11 @@ alter table public.comments enable row level security;
 alter table public.follows enable row level security;
 
 drop policy if exists "profiles are readable by everyone" on public.profiles;
-create policy "profiles are readable by user"
+drop policy if exists "profiles are readable by user" on public.profiles;
+create policy "profiles are readable by authenticated users"
 on public.profiles for select
-using (auth.uid() = id);
+to authenticated
+using (true);
 
 create or replace view public.public_profiles as
 select id, username, full_name, bio, avatar_url, created_at, updated_at
@@ -131,6 +133,7 @@ with check (auth.uid() = id);
 drop policy if exists "users can update their profile" on public.profiles;
 create policy "users can update their profile"
 on public.profiles for update
+to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
