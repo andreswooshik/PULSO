@@ -22,7 +22,7 @@ void main() {
 
   group('AuthService', () {
     test(
-      'signInWithEmail delegates to Supabase auth with trimmed email',
+      'signInWithEmailOrUsername delegates to Supabase auth with trimmed identifier',
       () async {
         final user = _testUser();
         final response = AuthResponse(user: user);
@@ -34,8 +34,8 @@ void main() {
           ),
         ).thenAnswer((_) async => response);
 
-        final result = await authService.signInWithEmail(
-          email: ' user@example.com ',
+        final result = await authService.signInWithEmailOrUsername(
+          identifier: ' user@example.com ',
           password: 'securePassword123',
         );
 

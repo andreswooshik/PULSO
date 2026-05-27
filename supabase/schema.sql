@@ -320,3 +320,10 @@ grant select on public.post_comment_counts to anon, authenticated;
 grant select on public.profile_follow_counts to anon, authenticated;
 
 notify pgrst, 'reload schema';
+create or replace function get_email_by_username(p_username text)
+returns text
+language sql
+security definer
+as $body$
+  select email from public.profiles where username = p_username limit 1;
+$body$;

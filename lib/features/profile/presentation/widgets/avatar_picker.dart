@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 /// Profile-feature specific widget for picking/displaying avatar
 class AvatarPicker extends StatefulWidget {
   final String? currentImageUrl;
-  final Function(String) onImageSelected;
+  final Function(File) onImageSelected;
 
   const AvatarPicker({
     super.key,
@@ -16,6 +18,8 @@ class AvatarPicker extends StatefulWidget {
 }
 
 class _AvatarPickerState extends State<AvatarPicker> {
+  final ImagePicker _picker = ImagePicker();
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -25,10 +29,14 @@ class _AvatarPickerState extends State<AvatarPicker> {
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage: widget.currentImageUrl != null
+            backgroundImage:
+                widget.currentImageUrl != null &&
+                    widget.currentImageUrl!.isNotEmpty
                 ? NetworkImage(widget.currentImageUrl!)
                 : null,
-            child: widget.currentImageUrl == null
+            child:
+                widget.currentImageUrl == null ||
+                    widget.currentImageUrl!.isEmpty
                 ? const Icon(Icons.person, size: 50)
                 : null,
           ),
@@ -45,10 +53,24 @@ class _AvatarPickerState extends State<AvatarPicker> {
     );
   }
 
-  void _pickImage() {
-    // TODO: Implement image picking using image_picker package
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Image picker to be implemented')),
-    );
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        widget.onImageSelected(File(image.path));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      }
+    }
   }
 }
