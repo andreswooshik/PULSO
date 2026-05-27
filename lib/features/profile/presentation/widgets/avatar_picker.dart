@@ -1,11 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Profile-feature specific widget for picking/displaying avatar
 class AvatarPicker extends StatefulWidget {
   final String? currentImageUrl;
-  final Function(File) onImageSelected;
+  final ValueChanged<XFile> onImageSelected;
 
   const AvatarPicker({
     super.key,
@@ -20,6 +19,9 @@ class AvatarPicker extends StatefulWidget {
 class _AvatarPickerState extends State<AvatarPicker> {
   final ImagePicker _picker = ImagePicker();
 
+  bool get _hasAvatarUrl =>
+      widget.currentImageUrl != null && widget.currentImageUrl!.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -29,16 +31,18 @@ class _AvatarPickerState extends State<AvatarPicker> {
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage:
-                widget.currentImageUrl != null &&
-                    widget.currentImageUrl!.isNotEmpty
-                ? NetworkImage(widget.currentImageUrl!)
-                : null,
-            child:
-                widget.currentImageUrl == null ||
-                    widget.currentImageUrl!.isEmpty
-                ? const Icon(Icons.person, size: 50)
-                : null,
+            child: _hasAvatarUrl
+                ? ClipOval(
+                    child: Image.network(
+                      widget.currentImageUrl!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          const Icon(Icons.person, size: 50),
+                    ),
+                  )
+                : const Icon(Icons.person, size: 50),
           ),
           Container(
             decoration: const BoxDecoration(
@@ -63,7 +67,7 @@ class _AvatarPickerState extends State<AvatarPicker> {
       );
 
       if (image != null) {
-        widget.onImageSelected(File(image.path));
+        widget.onImageSelected(image);
       }
     } catch (e) {
       if (mounted) {

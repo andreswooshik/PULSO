@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 import 'package:pulso/features/profile/data/profile_record.dart';
 import 'package:pulso/features/profile/data/profile_repository.dart';
@@ -58,7 +58,7 @@ class ProfileController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> uploadAndUpdateAvatar(File imageFile) async {
+  Future<void> uploadAndUpdateAvatar(XFile imageFile) async {
     state = const AsyncLoading();
     try {
       final userId = _ref.read(authUiProvider).userId;
