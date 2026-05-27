@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 class ProfileRecord {
   final String id;
   final String username;
-  final String? displayName;
   final String? fullName;
   final String? bio;
   final String? avatarUrl;
@@ -15,7 +14,6 @@ class ProfileRecord {
   const ProfileRecord({
     required this.id,
     required this.username,
-    this.displayName,
     this.fullName,
     this.bio,
     this.avatarUrl,
@@ -28,7 +26,6 @@ class ProfileRecord {
     return ProfileRecord(
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? 'unknown',
-      displayName: json['display_name'] as String?,
       fullName: json['full_name'] as String?,
       bio: json['bio'] as String?,
       avatarUrl: json['avatar_url'] as String?,
@@ -43,7 +40,6 @@ class ProfileRecord {
     return {
       'id': id,
       'username': username,
-      'display_name': displayName,
       'full_name': fullName,
       'bio': bio,
       'avatar_url': avatarUrl,
@@ -53,7 +49,6 @@ class ProfileRecord {
   ProfileRecord copyWith({
     String? id,
     String? username,
-    String? displayName,
     String? fullName,
     String? bio,
     String? avatarUrl,
@@ -64,7 +59,6 @@ class ProfileRecord {
     return ProfileRecord(
       id: id ?? this.id,
       username: username ?? this.username,
-      displayName: displayName ?? this.displayName,
       fullName: fullName ?? this.fullName,
       bio: bio ?? this.bio,
       avatarUrl: avatarUrl ?? this.avatarUrl,

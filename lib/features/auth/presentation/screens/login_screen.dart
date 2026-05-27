@@ -55,15 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  tooltip: 'Back',
-                  onPressed: () => context.go(AppRoutes.feed),
-                  icon: const Icon(Icons.arrow_back),
-                ),
-              ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 76),
               const Center(
                 child: Text(
                   'Pulso',

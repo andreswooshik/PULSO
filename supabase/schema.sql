@@ -16,7 +16,6 @@ create table if not exists public.profiles (
   account_type text not null default 'personal' check (
     account_type in ('personal', 'business', 'organization')
   ),
-  display_name text,
   bio text,
   avatar_url text,
   created_at timestamptz not null default now(),
@@ -82,6 +81,12 @@ add column if not exists full_name text;
 alter table public.profiles
 add column if not exists account_type text default 'personal';
 
+alter table public.profiles
+add column if not exists bio text;
+
+alter table public.profiles
+add column if not exists avatar_url text;
+
 alter table public.comments
 add column if not exists updated_at timestamptz not null default now();
 
@@ -113,7 +118,7 @@ on public.profiles for select
 using (auth.uid() = id);
 
 create or replace view public.public_profiles as
-select id, username, display_name, full_name, bio, avatar_url, created_at, updated_at
+select id, username, full_name, bio, avatar_url, created_at, updated_at
 from public.profiles;
 
 grant select on public.public_profiles to anon, authenticated;
