@@ -3,17 +3,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FeedRepository {
   final SupabaseClient _client;
+  static const int defaultFeedLimit = 20;
 
   FeedRepository(this._client);
 
-  Future<List<FeedPostRecord>> fetchPosts() async {
+  Future<List<FeedPostRecord>> fetchPosts({int limit = defaultFeedLimit}) async {
     final rows = await _client
         .from('posts')
         .select(
           'id, user_id, image_url, caption, created_at, '
           'profiles(username, display_name, first_name, last_name, avatar_url)',
         )
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(limit);
 
     final postMaps = rows.cast<Map<String, dynamic>>();
     final postIds = postMaps

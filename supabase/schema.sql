@@ -329,7 +329,16 @@ left join (
   group by follower_id
 ) following on following.follower_id = p.id;
 
+create or replace view public.profile_post_counts
+with (security_invoker = true) as
+select
+  user_id as profile_id,
+  count(*)::int as posts_count
+from public.posts
+group by user_id;
+
 grant select on public.post_comment_counts to anon, authenticated;
 grant select on public.profile_follow_counts to anon, authenticated;
+grant select on public.profile_post_counts to anon, authenticated;
 
 notify pgrst, 'reload schema';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pulso/core/theme/app_theme.dart';
+import 'package:pulso/core/widgets/widgets.dart';
 import 'package:pulso/features/comments/data/comment_record.dart';
 import 'package:pulso/features/comments/data/comment_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -35,7 +36,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
     super.initState();
     _client = Supabase.instance.client;
     _repository = CommentRepository(_client);
-    _loadComments();
+    _loadComments(showLoadingIndicator: true);
     _subscribeToRealtime();
   }
 
@@ -50,15 +51,17 @@ class _CommentsSheetState extends State<CommentsSheet> {
     super.dispose();
   }
 
-  Future<void> _loadComments() async {
+  Future<void> _loadComments({bool showLoadingIndicator = false}) async {
     if (!mounted) {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (showLoadingIndicator) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final comments = await _repository.fetchForPost(widget.postId);
@@ -68,6 +71,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
 
       setState(() {
         _comments = comments;
+        _errorMessage = null;
       });
     } catch (_) {
       if (!mounted) {
@@ -78,7 +82,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
         _errorMessage = 'Could not load comments right now.';
       });
     } finally {
-      if (mounted) {
+      if (mounted && showLoadingIndicator) {
         setState(() {
           _isLoading = false;
         });
@@ -120,9 +124,11 @@ class _CommentsSheetState extends State<CommentsSheet> {
 
     try {
       await _repository.addComment(postId: widget.postId, content: content);
+      if (!mounted) {
+        return;
+      }
       _commentController.clear();
       _commentFocusNode.requestFocus();
-      await _loadComments();
     } catch (_) {
       if (!mounted) {
         return;
@@ -143,7 +149,15 @@ class _CommentsSheetState extends State<CommentsSheet> {
   Future<void> _deleteComment(String commentId) async {
     try {
       await _repository.deleteComment(commentId);
-      await _loadComments();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _comments = _comments
+            .where((comment) => comment.id != commentId)
+            .toList(growable: false);
+      });
     } catch (_) {
       if (!mounted) {
         return;
@@ -240,16 +254,24 @@ class _CommentsSheetState extends State<CommentsSheet> {
               if (_errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                  child: _InlineMessage(message: _errorMessage!),
+                  child: InlineMessage(message: _errorMessage!),
                 ),
               Expanded(
                 child: RefreshIndicator(
-                  onRefresh: _loadComments,
+                  onRefresh: () => _loadComments(),
                   child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? ListView(
+                          controller: scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: const [
+                            SizedBox(height: 120),
+                            Center(child: CircularProgressIndicator()),
+                          ],
+                        )
                       : _comments.isEmpty
                       ? ListView(
                           controller: scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(24, 72, 24, 24),
                           children: const [
                             Icon(
@@ -497,29 +519,5 @@ class _CommentTile extends StatelessWidget {
       'Dec',
     ];
     return '${monthNames[createdAt.month - 1]} ${createdAt.day}';
-  }
-}
-
-class _InlineMessage extends StatelessWidget {
-  final String message;
-
-  const _InlineMessage({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFE4E8),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: AppTheme.midnight,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
   }
 }

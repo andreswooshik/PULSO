@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pulso/core/routing/app_routes.dart';
 import 'package:pulso/core/theme/app_theme.dart';
+import 'package:pulso/core/widgets/widgets.dart';
 import 'package:pulso/features/comments/presentation/widgets/comments_sheet.dart';
 import 'package:pulso/features/feed/data/feed_post_record.dart';
 import 'package:pulso/features/feed/data/feed_repository.dart';
@@ -105,7 +106,7 @@ class _FeedScreenState extends State<FeedScreen> {
             const _HeroPanel(),
             const SizedBox(height: 14),
             if (_errorMessage != null) ...[
-              _InlineMessage(message: _errorMessage!),
+              InlineMessage(message: _errorMessage!),
               const SizedBox(height: 14),
             ],
             if (_isLoading)
@@ -242,7 +243,7 @@ class _PostCard extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                       Text(
-                        '@${post.username} • ${_formatTimestamp(post.createdAt)}',
+                        '@${post.username} - ${_formatTimestamp(post.createdAt)}',
                         style: const TextStyle(color: Color(0xFF667085)),
                       ),
                     ],
@@ -425,30 +426,6 @@ class _MiniCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InlineMessage extends StatelessWidget {
-  final String message;
-
-  const _InlineMessage({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFE4E8),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: AppTheme.midnight,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );

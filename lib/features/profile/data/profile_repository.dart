@@ -31,7 +31,11 @@ class ProfileRepository {
         .eq('profile_id', userId)
         .maybeSingle();
 
-    final postRows = await _client.from('posts').select('id').eq('user_id', userId);
+    final postCountsRow = await _client
+        .from('profile_post_counts')
+        .select('posts_count')
+        .eq('profile_id', userId)
+        .maybeSingle();
     final username = (row['username'] as String?)?.trim();
     final displayName = (row['display_name'] as String?)?.trim();
     final firstName = (row['first_name'] as String?)?.trim();
@@ -48,7 +52,7 @@ class ProfileRepository {
       ),
       bio: (row['bio'] as String?)?.trim(),
       avatarUrl: (row['avatar_url'] as String?)?.trim(),
-      postsCount: postRows.length,
+      postsCount: postCountsRow?['posts_count'] as int? ?? 0,
       followersCount: countsRow?['followers_count'] as int? ?? 0,
       followingCount: countsRow?['following_count'] as int? ?? 0,
     );

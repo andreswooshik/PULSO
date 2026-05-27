@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulso/core/theme/app_theme.dart';
+import 'package:pulso/core/widgets/widgets.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 import 'package:pulso/features/follows/data/follow_repository.dart';
 import 'package:pulso/features/profile/data/follow_suggestion_record.dart';
 import 'package:pulso/features/profile/data/profile_repository.dart';
 import 'package:pulso/features/profile/data/profile_summary_record.dart';
 import 'package:pulso/features/profile/presentation/widgets/profile_widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -136,7 +137,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             if (_errorMessage != null) ...[
-              _InlineMessage(message: _errorMessage!),
+              InlineMessage(message: _errorMessage!),
               const SizedBox(height: 12),
             ],
             if (_isLoading)
@@ -417,30 +418,6 @@ class _MiniStat extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _InlineMessage extends StatelessWidget {
-  final String message;
-
-  const _InlineMessage({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFE4E8),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: AppTheme.midnight,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 }
