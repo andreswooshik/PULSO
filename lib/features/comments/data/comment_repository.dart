@@ -11,7 +11,7 @@ class CommentRepository {
         .from('comments')
         .select(
           'id, post_id, content, created_at, user_id, '
-          'profiles(username, avatar_url)',
+          'public_profiles(username, avatar_url)',
         )
         .eq('post_id', postId)
         .order('created_at');

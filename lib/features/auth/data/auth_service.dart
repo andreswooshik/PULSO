@@ -49,13 +49,40 @@ class AuthService {
     return _client.auth.onAuthStateChange;
   }
 
-  Future<AuthResponse> signInWithEmail({
+  Future<AuthResponse> signInWithEmailOrUsername({
     required String identifier,
     required String password,
   }) async {
-    final email = await _resolveEmailForSignIn(identifier);
+    final cleanIdentifier = identifier.trim();
 
-    return _client.auth.signInWithPassword(email: email, password: password);
+    String loginEmail = cleanIdentifier;
+
+    // If identifier is not an email, assume it is a username and look up the email
+    if (!_isEmail(cleanIdentifier)) {
+      try {
+        final response = await _client.rpc(
+          'get_email_by_username',
+          params: {'p_username': cleanIdentifier},
+        );
+        
+        if (response != null && response.toString().isNotEmpty) {
+          loginEmail = response as String;
+        } else {
+          // If RPC returns null or we can't find it, Supabase will just fail the login attempt
+          // Or we can throw an explicit error.
+          throw const AuthServiceException('Username not found or invalid.');
+        }
+      } catch (e) {
+        if (e is AuthServiceException) rethrow; // Pass up known exception
+        throw AuthServiceException(
+            'Could not resolve username. Please ensure the database setup is complete or try using an email.');
+      }
+    }
+
+    return _client.auth.signInWithPassword(
+      email: loginEmail,
+      password: password,
+    );
   }
 
   Future<AuthResponse> signUpWithEmail({
@@ -127,32 +154,6 @@ class AuthService {
 
   Future<void> signOut() {
     return _client.auth.signOut();
-  }
-
-  Future<String> _resolveEmailForSignIn(String identifier) async {
-    final cleanIdentifier = identifier.trim();
-    if (_isEmail(cleanIdentifier)) {
-      return cleanIdentifier;
-    }
-
-    try {
-      final result = await _client.rpc(
-        'get_email_by_username',
-        params: {'requested_username': _normalizeUsername(cleanIdentifier)},
-      );
-
-      if (result is String && result.trim().isNotEmpty) {
-        return result.trim();
-      }
-
-      throw const AuthServiceException('No account found for that username.');
-    } on AuthServiceException {
-      rethrow;
-    } catch (_) {
-      throw const AuthServiceException(
-        'Could not find an account with that username.',
-      );
-    }
   }
 
   bool _isEmail(String value) {

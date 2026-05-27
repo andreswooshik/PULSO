@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pulso/core/routing/app_routes.dart';
 import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/core/widgets/widgets.dart';
+import 'package:pulso/features/auth/providers/auth_provider.dart';
 import 'package:pulso/features/comments/presentation/widgets/comments_sheet.dart';
 import 'package:pulso/features/feed/data/feed_post_record.dart';
 import 'package:pulso/features/feed/data/feed_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class FeedScreen extends StatefulWidget {
+class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
 
   @override
-  State<FeedScreen> createState() => _FeedScreenState();
+  ConsumerState<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends State<FeedScreen> {
+class _FeedScreenState extends ConsumerState<FeedScreen> {
   late final FeedRepository _repository;
 
   List<FeedPostRecord> _posts = const [];
@@ -77,8 +79,14 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
+  Future<void> _signOut() async {
+    await ref.read(authUiProvider.notifier).signOut();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isAuthenticated = ref.watch(authUiProvider).isAuthenticated;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -91,11 +99,24 @@ class _FeedScreenState extends State<FeedScreen> {
             onPressed: _loadPosts,
             icon: const Icon(Icons.refresh),
           ),
-          IconButton(
-            tooltip: 'Profile',
-            onPressed: () => context.go(AppRoutes.profile),
-            icon: const Icon(Icons.person_outline),
-          ),
+          if (!isAuthenticated)
+            IconButton(
+              tooltip: 'Login',
+              onPressed: () => context.push(AppRoutes.login),
+              icon: const Icon(Icons.login),
+            )
+          else ...[
+            IconButton(
+              tooltip: 'Profile',
+              onPressed: () => context.go(AppRoutes.profile),
+              icon: const Icon(Icons.person_outline),
+            ),
+            IconButton(
+              tooltip: 'Logout',
+              onPressed: _signOut,
+              icon: const Icon(Icons.logout),
+            ),
+          ],
         ],
       ),
       body: RefreshIndicator(

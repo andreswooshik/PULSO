@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 /// Profile-feature specific widget for picking/displaying avatar
 class AvatarPicker extends StatefulWidget {
   final String? currentImageUrl;
-  final Function(String) onImageSelected;
+  final ValueChanged<XFile> onImageSelected;
 
   const AvatarPicker({
     super.key,
@@ -16,6 +17,11 @@ class AvatarPicker extends StatefulWidget {
 }
 
 class _AvatarPickerState extends State<AvatarPicker> {
+  final ImagePicker _picker = ImagePicker();
+
+  bool get _hasAvatarUrl =>
+      widget.currentImageUrl != null && widget.currentImageUrl!.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -25,12 +31,18 @@ class _AvatarPickerState extends State<AvatarPicker> {
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage: widget.currentImageUrl != null
-                ? NetworkImage(widget.currentImageUrl!)
-                : null,
-            child: widget.currentImageUrl == null
-                ? const Icon(Icons.person, size: 50)
-                : null,
+            child: _hasAvatarUrl
+                ? ClipOval(
+                    child: Image.network(
+                      widget.currentImageUrl!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          const Icon(Icons.person, size: 50),
+                    ),
+                  )
+                : const Icon(Icons.person, size: 50),
           ),
           Container(
             decoration: const BoxDecoration(
@@ -45,10 +57,24 @@ class _AvatarPickerState extends State<AvatarPicker> {
     );
   }
 
-  void _pickImage() {
-    // TODO: Implement image picking using image_picker package
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Image picker to be implemented')),
-    );
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        widget.onImageSelected(image);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      }
+    }
   }
 }

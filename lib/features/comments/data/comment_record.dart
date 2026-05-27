@@ -18,7 +18,7 @@ class CommentRecord {
   });
 
   factory CommentRecord.fromMap(Map<String, dynamic> map) {
-    final profile = _profileMap(map['profiles']);
+    final profile = _profileMap(map['public_profiles'] ?? map['profiles']);
     final username = (profile?['username'] as String?)?.trim();
 
     return CommentRecord(
@@ -32,6 +32,10 @@ class CommentRecord {
       username: username?.isNotEmpty == true ? username! : 'community_member',
       avatarUrl: (profile?['avatar_url'] as String?)?.trim(),
     );
+  }
+
+  factory CommentRecord.fromJson(Map<String, dynamic> json) {
+    return CommentRecord.fromMap(json);
   }
 
   String get initials {

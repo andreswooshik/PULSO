@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/core/widgets/widgets.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 import 'package:pulso/features/follows/data/follow_repository.dart';
 import 'package:pulso/features/profile/data/follow_suggestion_record.dart';
+import 'package:pulso/features/profile/data/profile_record.dart';
 import 'package:pulso/features/profile/data/profile_repository.dart';
-import 'package:pulso/features/profile/data/profile_summary_record.dart';
 import 'package:pulso/features/profile/presentation/widgets/profile_widgets.dart';
+import 'package:pulso/features/profile/providers/profile_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -21,10 +23,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final ProfileRepository _profileRepository;
   late final FollowRepository _followRepository;
 
-  ProfileSummaryRecord? _profile;
   List<FollowSuggestionRecord> _suggestions = const [];
-  bool _isLoading = true;
-  String? _errorMessage;
+  bool _isSuggestionsLoading = true;
+  String? _suggestionsError;
   final Set<String> _busyProfileIds = <String>{};
 
   @override
@@ -33,28 +34,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final client = Supabase.instance.client;
     _profileRepository = ProfileRepository(client);
     _followRepository = FollowRepository(client);
-    _loadProfileData();
+    _loadSuggestions();
   }
 
-  Future<void> _loadProfileData() async {
+  String _profileTitle(ProfileRecord profile) {
+    final fullName = profile.fullName?.trim();
+    if (fullName != null && fullName.isNotEmpty) {
+      return fullName;
+    }
+
+    return profile.username;
+  }
+
+  String? _profileBio(ProfileRecord profile) {
+    final bio = profile.bio?.trim();
+    if (bio == null || bio.isEmpty) {
+      return null;
+    }
+
+    return bio;
+  }
+
+  Future<void> _loadSuggestions() async {
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+      _isSuggestionsLoading = true;
+      _suggestionsError = null;
     });
 
     try {
-      final profile = await _profileRepository.fetchCurrentProfile();
       final suggestions = await _profileRepository.fetchDiscoverProfiles();
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _profile = profile;
         _suggestions = suggestions;
       });
     } catch (_) {
@@ -63,15 +80,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
 
       setState(() {
-        _errorMessage = 'Could not load your profile details.';
+        _suggestionsError = 'Could not load follow suggestions right now.';
       });
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isSuggestionsLoading = false;
         });
       }
     }
+  }
+
+  Future<void> _refreshAll() async {
+    ref.invalidate(currentProfileProvider);
+    await Future.wait([
+      ref.read(currentProfileProvider.future),
+      _loadSuggestions(),
+    ]);
   }
 
   Future<void> _toggleFollow(FollowSuggestionRecord profile) async {
@@ -85,7 +110,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       } else {
         await _followRepository.follow(profile.id);
       }
-      await _loadProfileData();
+      await _refreshAll();
     } catch (_) {
       if (!mounted) {
         return;
@@ -109,19 +134,112 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _saveProfileChanges({
+    required String profileId,
+    required String currentUsername,
+    required BuildContext dialogContext,
+    required TextEditingController usernameController,
+    required TextEditingController bioController,
+  }) async {
+    final saved = await ref
+        .read(profileControllerProvider.notifier)
+        .updateProfile(
+          userId: profileId,
+          currentUsername: currentUsername,
+          username: usernameController.text.trim(),
+          bio: bioController.text.trim(),
+        );
+
+    if (!mounted || !dialogContext.mounted) {
+      return;
+    }
+
+    if (saved) {
+      Navigator.of(dialogContext).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile updated')));
+      await _refreshAll();
+      return;
+    }
+
+    final error = ref.read(profileControllerProvider).error;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error?.toString() ?? 'Profile update failed')),
+    );
+  }
+
+  Future<void> _editProfileDialog(
+    BuildContext context,
+    String profileId,
+    String currentUsername,
+    String currentBio,
+  ) async {
+    final usernameController = TextEditingController(text: currentUsername);
+    final bioController = TextEditingController(text: currentBio);
+
+    try {
+      await showDialog(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Edit Profile'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: bioController,
+                  decoration: const InputDecoration(labelText: 'Bio'),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => _saveProfileChanges(
+                  profileId: profileId,
+                  currentUsername: currentUsername,
+                  dialogContext: dialogContext,
+                  usernameController: usernameController,
+                  bioController: bioController,
+                ),
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      usernameController.dispose();
+      bioController.dispose();
+    }
+  }
+
   Future<void> _signOut() async {
     await ref.read(authUiProvider.notifier).signOut();
   }
 
   @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(currentProfileProvider);
+    final isUpdating = ref.watch(profileControllerProvider).isLoading;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
         actions: [
           IconButton(
             tooltip: 'Refresh profile',
-            onPressed: _loadProfileData,
+            onPressed: _refreshAll,
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
@@ -131,101 +249,129 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadProfileData,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (_errorMessage != null) ...[
-              InlineMessage(message: _errorMessage!),
-              const SizedBox(height: 12),
-            ],
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.only(top: 80),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_profile != null) ...[
-              _ProfileHeader(profile: _profile!),
-              const SizedBox(height: 18),
-              _DiscoverSection(
-                suggestions: _suggestions,
-                busyProfileIds: _busyProfileIds,
-                onToggleFollow: _toggleFollow,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileHeader extends StatelessWidget {
-  final ProfileSummaryRecord profile;
-
-  const _ProfileHeader({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE4E7EC)),
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 44,
-            backgroundColor: AppTheme.royalBlue.withValues(alpha: 0.14),
-            foregroundColor: AppTheme.royalBlue,
+      body: profileAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, st) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Text(
-              profile.initials,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            profile.displayName,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '@${profile.username}',
-            style: const TextStyle(
-              color: Color(0xFF667085),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (profile.bio != null && profile.bio!.trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              profile.bio!,
+              'Failed to load profile. Error:\n$e',
               textAlign: TextAlign.center,
-              style: const TextStyle(height: 1.4),
+              style: const TextStyle(color: Colors.red),
             ),
-          ],
-          const SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ProfileStatItem(
-                label: 'Posts',
-                value: profile.postsCount.toString(),
-              ),
-              ProfileStatItem(
-                label: 'Followers',
-                value: profile.followersCount.toString(),
-              ),
-              ProfileStatItem(
-                label: 'Following',
-                value: profile.followingCount.toString(),
-              ),
-            ],
           ),
-        ],
+        ),
+        data: (profile) {
+          if (profile == null) {
+            return const Center(child: Text('Profile not found'));
+          }
+
+          final profileTitle = _profileTitle(profile);
+          final bio = _profileBio(profile);
+
+          return Stack(
+            children: [
+              RefreshIndicator(
+                onRefresh: _refreshAll,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Center(
+                      child: AvatarPicker(
+                        currentImageUrl: profile.avatarUrl,
+                        onImageSelected: (XFile imageFile) {
+                          ref
+                              .read(profileControllerProvider.notifier)
+                              .uploadAndUpdateAvatar(imageFile);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              profileTitle,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 18),
+                            onPressed: () => _editProfileDialog(
+                              context,
+                              profile.id,
+                              profile.username,
+                              bio ?? '',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (profile.username.isNotEmpty)
+                      Center(
+                        child: Text(
+                          '@${profile.username}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF667085),
+                          ),
+                        ),
+                      ),
+                    if (bio != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        bio,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16, height: 1.4),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ProfileStatItem(
+                          label: 'Posts',
+                          value: profile.postsCount.toString(),
+                        ),
+                        ProfileStatItem(
+                          label: 'Followers',
+                          value: profile.followersCount.toString(),
+                        ),
+                        ProfileStatItem(
+                          label: 'Following',
+                          value: profile.followingCount.toString(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _DiscoverSection(
+                      suggestions: _suggestions,
+                      isLoading: _isSuggestionsLoading,
+                      errorMessage: _suggestionsError,
+                      busyProfileIds: _busyProfileIds,
+                      onToggleFollow: _toggleFollow,
+                      onRetry: _loadSuggestions,
+                    ),
+                  ],
+                ),
+              ),
+              if (isUpdating)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black26,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -233,13 +379,19 @@ class _ProfileHeader extends StatelessWidget {
 
 class _DiscoverSection extends StatelessWidget {
   final List<FollowSuggestionRecord> suggestions;
+  final bool isLoading;
+  final String? errorMessage;
   final Set<String> busyProfileIds;
   final Future<void> Function(FollowSuggestionRecord profile) onToggleFollow;
+  final Future<void> Function() onRetry;
 
   const _DiscoverSection({
     required this.suggestions,
+    required this.isLoading,
+    required this.errorMessage,
     required this.busyProfileIds,
     required this.onToggleFollow,
+    required this.onRetry,
   });
 
   @override
@@ -261,7 +413,20 @@ class _DiscoverSection extends StatelessWidget {
           style: TextStyle(color: Color(0xFF667085), height: 1.4),
         ),
         const SizedBox(height: 14),
-        if (suggestions.isEmpty)
+        if (errorMessage != null) ...[
+          InlineMessage(message: errorMessage!),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try again'),
+          ),
+        ] else if (isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (suggestions.isEmpty)
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(

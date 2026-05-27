@@ -16,7 +16,6 @@ create table if not exists public.profiles (
   account_type text not null default 'personal' check (
     account_type in ('personal', 'business', 'organization')
   ),
-  display_name text,
   bio text,
   avatar_url text,
   created_at timestamptz not null default now(),
@@ -82,6 +81,12 @@ add column if not exists full_name text;
 alter table public.profiles
 add column if not exists account_type text default 'personal';
 
+alter table public.profiles
+add column if not exists bio text;
+
+alter table public.profiles
+add column if not exists avatar_url text;
+
 alter table public.comments
 add column if not exists updated_at timestamptz not null default now();
 
@@ -108,9 +113,17 @@ alter table public.comments enable row level security;
 alter table public.follows enable row level security;
 
 drop policy if exists "profiles are readable by everyone" on public.profiles;
-create policy "profiles are readable by everyone"
+drop policy if exists "profiles are readable by user" on public.profiles;
+create policy "profiles are readable by authenticated users"
 on public.profiles for select
+to authenticated
 using (true);
+
+create or replace view public.public_profiles as
+select id, username, full_name, bio, avatar_url, created_at, updated_at
+from public.profiles;
+
+grant select on public.public_profiles to anon, authenticated;
 
 drop policy if exists "users can insert their profile" on public.profiles;
 create policy "users can insert their profile"
@@ -120,6 +133,7 @@ with check (auth.uid() = id);
 drop policy if exists "users can update their profile" on public.profiles;
 create policy "users can update their profile"
 on public.profiles for update
+to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
@@ -224,25 +238,6 @@ grant execute on function public.normalize_username(text) to authenticated;
 grant execute on function public.is_username_available(text) to anon;
 grant execute on function public.is_username_available(text) to authenticated;
 
-create or replace function public.get_email_by_username(
-  requested_username text
-)
-returns text
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select email
-  from public.profiles
-  where public.normalize_username(username) =
-    public.normalize_username(requested_username)
-  limit 1;
-$$;
-
-grant execute on function public.get_email_by_username(text) to anon;
-grant execute on function public.get_email_by_username(text) to authenticated;
-
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -317,7 +312,7 @@ select
   p.id as profile_id,
   coalesce(followers.count, 0)::int as followers_count,
   coalesce(following.count, 0)::int as following_count
-from public.profiles p
+from public.public_profiles p
 left join (
   select following_id, count(*) as count
   from public.follows
@@ -342,3 +337,10 @@ grant select on public.profile_follow_counts to anon, authenticated;
 grant select on public.profile_post_counts to anon, authenticated;
 
 notify pgrst, 'reload schema';
+create or replace function get_email_by_username(p_username text)
+returns text
+language sql
+security definer
+as $body$
+  select email from public.profiles where username = p_username limit 1;
+$body$;

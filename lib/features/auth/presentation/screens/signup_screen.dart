@@ -120,8 +120,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         password: _passwordController.text,
       );
     } finally {
-      _passwordController.clear();
-      _confirmPasswordController.clear();
+      // Don't clear password here to not inconvenience the user if it fails
     }
   }
 

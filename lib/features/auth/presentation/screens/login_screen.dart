@@ -15,12 +15,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _identifierController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -35,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(authUiProvider.notifier)
           .signIn(
-            identifier: _identifierController.text,
+            identifier: _emailController.text,
             password: _passwordController.text,
           );
     } finally {
@@ -55,15 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  tooltip: 'Back',
-                  onPressed: () => context.go(AppRoutes.feed),
-                  icon: const Icon(Icons.arrow_back),
-                ),
-              ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 76),
               const Center(
                 child: Text(
                   'Pulso',
@@ -94,10 +86,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ],
               const SizedBox(height: 42),
               AppTextField(
-                controller: _identifierController,
-                label: 'Username or Email',
-                hint: 'juan_delacruz or you@example.com',
-                keyboardType: TextInputType.text,
+                controller: _emailController,
+                label: 'Email or Username',
+                hint: 'you@example.com or username',
+                keyboardType: TextInputType.emailAddress,
                 validator: _validateIdentifier,
               ),
               const SizedBox(height: 14),
