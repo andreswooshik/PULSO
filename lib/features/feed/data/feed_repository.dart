@@ -7,13 +7,12 @@ class FeedRepository {
 
   FeedRepository(this._client);
 
-  Future<List<FeedPostRecord>> fetchPosts({int limit = defaultFeedLimit}) async {
+  Future<List<FeedPostRecord>> fetchPosts({
+    int limit = defaultFeedLimit,
+  }) async {
     final rows = await _client
         .from('posts')
-        .select(
-          'id, user_id, image_url, caption, created_at, '
-          'profiles(username, display_name, first_name, last_name, avatar_url)',
-        )
+        .select('id, user_id, image_url, caption, created_at')
         .order('created_at', ascending: false)
         .limit(limit);
 
