@@ -8,6 +8,7 @@ import 'package:pulso/features/auth/providers/auth_provider.dart';
 import 'package:pulso/features/comments/presentation/widgets/comments_sheet.dart';
 import 'package:pulso/features/feed/data/feed_post_record.dart';
 import 'package:pulso/features/feed/data/feed_repository.dart';
+import 'package:pulso/features/likes/widgets/like_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,9 @@ class FeedScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
+  RealtimeChannel? _postsChannel;
+  RealtimeChannel? _likesChannel;
+  RealtimeChannel? _commentsChannel;
   late final FeedRepository _repository;
 
   List<FeedPostRecord> _posts = const [];
@@ -28,7 +32,48 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   void initState() {
     super.initState();
     _repository = FeedRepository(Supabase.instance.client);
+
+    _setupRealtime();
     _loadPosts();
+  }
+
+  void _setupRealtime() {
+    final supabase = Supabase.instance.client;
+
+    _postsChannel = supabase
+        .channel('posts_realtime')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'posts',
+          callback: (payload) async {
+            await _loadPosts();
+          },
+        )
+        .subscribe();
+
+    _likesChannel = supabase
+        .channel('likes_realtime')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'likes',
+          callback: (payload) async {
+            await _loadPosts();
+          },
+        )
+        .subscribe();
+    _commentsChannel = supabase
+        .channel('comments_realtime')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'comments',
+          callback: (payload) async {
+            await _loadPosts();
+          },
+        )
+        .subscribe();
   }
 
   Future<void> _loadPosts() async {
@@ -43,6 +88,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
     try {
       final posts = await _repository.fetchPosts();
+
       if (!mounted) {
         return;
       }
@@ -72,15 +118,31 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => CommentsSheet(
-        postId: post.id,
-        postLabel: '@${post.username}',
-      ),
+      builder: (_) =>
+          CommentsSheet(postId: post.id, postLabel: '@${post.username}'),
     );
   }
 
   Future<void> _signOut() async {
     await ref.read(authUiProvider.notifier).signOut();
+  }
+
+  @override
+  @override
+  void dispose() {
+    if (_postsChannel != null) {
+      Supabase.instance.client.removeChannel(_postsChannel!);
+    }
+
+    if (_likesChannel != null) {
+      Supabase.instance.client.removeChannel(_likesChannel!);
+    }
+
+    if (_commentsChannel != null) {
+      Supabase.instance.client.removeChannel(_commentsChannel!);
+    }
+
+    super.dispose();
   }
 
   @override
@@ -95,28 +157,30 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Refresh feed',
+            tooltip: 'Refresh',
             onPressed: _loadPosts,
             icon: const Icon(Icons.refresh),
           ),
+
           if (!isAuthenticated)
-            IconButton(
-              tooltip: 'Login',
-              onPressed: () => context.push(AppRoutes.login),
-              icon: const Icon(Icons.login),
-            )
-          else ...[
-            IconButton(
-              tooltip: 'Profile',
-              onPressed: () => context.go(AppRoutes.profile),
-              icon: const Icon(Icons.person_outline),
-            ),
-            IconButton(
-              tooltip: 'Logout',
-              onPressed: _signOut,
-              icon: const Icon(Icons.logout),
-            ),
-          ],
+            if (!isAuthenticated)
+              IconButton(
+                tooltip: 'Login',
+                onPressed: () => context.push(AppRoutes.login),
+                icon: const Icon(Icons.login),
+              )
+            else ...[
+              IconButton(
+                tooltip: 'Profile',
+                onPressed: () => context.go(AppRoutes.profile),
+                icon: const Icon(Icons.person_outline),
+              ),
+              IconButton(
+                tooltip: 'Logout',
+                onPressed: _signOut,
+                icon: const Icon(Icons.logout),
+              ),
+            ],
         ],
       ),
       body: RefreshIndicator(
@@ -126,10 +190,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           children: [
             const _HeroPanel(),
             const SizedBox(height: 14),
+
             if (_errorMessage != null) ...[
               InlineMessage(message: _errorMessage!),
               const SizedBox(height: 14),
             ],
+
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.only(top: 40),
@@ -147,6 +213,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   const SizedBox(height: 14),
                 ],
               ),
+
             const _FoundationRow(),
           ],
         ),
@@ -238,6 +305,8 @@ class _PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -255,6 +324,7 @@ class _PostCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,17 +342,17 @@ class _PostCard extends StatelessWidget {
                 ),
               ],
             ),
+
             if (post.caption.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
                 post.caption,
-                style: const TextStyle(
-                  color: AppTheme.midnight,
-                  height: 1.42,
-                ),
+                style: const TextStyle(color: AppTheme.midnight, height: 1.42),
               ),
             ],
+
             const SizedBox(height: 12),
+
             Container(
               height: 170,
               decoration: BoxDecoration(
@@ -316,19 +386,20 @@ class _PostCard extends StatelessWidget {
                       child: Image.network(post.imageUrl!, fit: BoxFit.cover),
                     ),
             ),
+
             const SizedBox(height: 12),
+
             Row(
               children: [
-                IconButton(
-                  tooltip: 'Thumbs up',
-                  onPressed: () {},
-                  icon: const Icon(Icons.thumb_up_alt_outlined),
-                ),
+                if (currentUser != null)
+                  LikeButton(postId: post.id, userId: currentUser.id),
+
                 IconButton(
                   tooltip: 'Comments',
                   onPressed: onCommentsPressed,
                   icon: const Icon(Icons.mode_comment_outlined),
                 ),
+
                 Text(
                   '${post.commentCount}',
                   style: const TextStyle(
@@ -336,7 +407,9 @@ class _PostCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+
                 const Spacer(),
+
                 Text(
                   post.commentCount == 1
                       ? '1 live comment'
@@ -356,15 +429,19 @@ class _PostCard extends StatelessWidget {
 
   static String _formatTimestamp(DateTime createdAt) {
     final difference = DateTime.now().difference(createdAt.toLocal());
+
     if (difference.inMinutes < 1) {
       return 'now';
     }
+
     if (difference.inHours < 1) {
       return '${difference.inMinutes}m';
     }
+
     if (difference.inDays < 1) {
       return '${difference.inHours}h';
     }
+
     return '${difference.inDays}d';
   }
 }
@@ -384,7 +461,9 @@ class _EmptyFeedState extends StatelessWidget {
       child: Column(
         children: [
           const Icon(Icons.forum_outlined, size: 44, color: AppTheme.royalBlue),
+
           const SizedBox(height: 14),
+
           const Text(
             'No posts yet',
             style: TextStyle(
@@ -393,13 +472,17 @@ class _EmptyFeedState extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
+
           const SizedBox(height: 8),
+
           const Text(
             'Create the first post so your comment threads and follow activity have somewhere to gather.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF667085), height: 1.4),
           ),
+
           const SizedBox(height: 14),
+
           FilledButton.icon(
             onPressed: () => context.go(AppRoutes.createPost),
             icon: const Icon(Icons.add),
@@ -419,7 +502,10 @@ class _FoundationRow extends StatelessWidget {
     return const Row(
       children: [
         Expanded(
-          child: _MiniCard(title: 'Comments', icon: Icons.mode_comment_outlined),
+          child: _MiniCard(
+            title: 'Comments',
+            icon: Icons.mode_comment_outlined,
+          ),
         ),
         SizedBox(width: 10),
         Expanded(
