@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/core/widgets/widgets.dart';
 import 'package:pulso/features/comments/data/comment_record.dart';
@@ -174,9 +175,9 @@ class _CommentsSheetState extends State<CommentsSheet> {
     final currentUserId = _client.auth.currentUser?.id;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.86,
-      minChildSize: 0.45,
-      maxChildSize: 0.94,
+      initialChildSize: 1.0,
+      minChildSize: 1.0,
+      maxChildSize: 1.0,
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
@@ -226,14 +227,10 @@ class _CommentsSheetState extends State<CommentsSheet> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.sync,
-                            size: 14,
-                            color: AppTheme.royalBlue,
-                          ),
+                          Icon(Icons.sync, size: 14, color: AppTheme.royalBlue),
                           SizedBox(width: 6),
                           Text(
-                            'Live',
+                            'Threads',
                             style: TextStyle(
                               color: AppTheme.royalBlue,
                               fontWeight: FontWeight.w700,
@@ -329,10 +326,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
                           alpha: 0.14,
                         ),
                         foregroundColor: AppTheme.royalBlue,
-                        child: Text(
-                          _currentUserInitials(),
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
+                        child: const FaIcon(FontAwesomeIcons.user, size: 16),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -376,16 +370,6 @@ class _CommentsSheetState extends State<CommentsSheet> {
       },
     );
   }
-
-  String _currentUserInitials() {
-    final username = _client.auth.currentUser?.userMetadata?['username'];
-    if (username is String && username.trim().isNotEmpty) {
-      final clean = username.trim();
-      final end = clean.length >= 2 ? 2 : 1;
-      return clean.substring(0, end).toUpperCase();
-    }
-    return 'YO';
-  }
 }
 
 class _CommentTile extends StatelessWidget {
@@ -407,10 +391,7 @@ class _CommentTile extends StatelessWidget {
         CircleAvatar(
           backgroundColor: AppTheme.royalBlue.withValues(alpha: 0.14),
           foregroundColor: AppTheme.royalBlue,
-          child: Text(
-            comment.initials,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-          ),
+          child: const FaIcon(FontAwesomeIcons.user, size: 12),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -455,10 +436,7 @@ class _CommentTile extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   comment.content,
-                  style: const TextStyle(
-                    color: AppTheme.midnight,
-                    height: 1.4,
-                  ),
+                  style: const TextStyle(color: AppTheme.midnight, height: 1.4),
                 ),
                 const SizedBox(height: 10),
                 Row(

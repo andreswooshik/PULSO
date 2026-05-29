@@ -7,11 +7,7 @@ class LikeButton extends ConsumerStatefulWidget {
   final String postId;
   final String userId;
 
-  const LikeButton({
-    super.key,
-    required this.postId,
-    required this.userId,
-  });
+  const LikeButton({super.key, required this.postId, required this.userId});
 
   @override
   ConsumerState<LikeButton> createState() => _LikeButtonState();
@@ -20,6 +16,7 @@ class LikeButton extends ConsumerStatefulWidget {
 class _LikeButtonState extends ConsumerState<LikeButton> {
   bool hasLiked = false;
   int likeCount = 0;
+  bool _isToggling = false;
 
   @override
   void initState() {
@@ -53,21 +50,50 @@ class _LikeButtonState extends ConsumerState<LikeButton> {
       children: [
         IconButton(
           icon: Icon(
-            hasLiked
-                ? Icons.favorite
-                : Icons.favorite_border,
+            hasLiked ? Icons.favorite : Icons.favorite_border,
             color: hasLiked ? Colors.red : null,
           ),
-          onPressed: () async {
-            final repository = ref.read(likeRepositoryProvider);
+          onPressed: _isToggling
+              ? null
+              : () async {
+                  final repository = ref.read(likeRepositoryProvider);
+                  final nextHasLiked = !hasLiked;
+                  final nextLikeCount = nextHasLiked
+                      ? likeCount + 1
+                      : (likeCount > 0 ? likeCount - 1 : 0);
 
-            await repository.toggleLike(
-              postId: widget.postId,
-              userId: widget.userId,
-            );
+                  if (mounted) {
+                    setState(() {
+                      _isToggling = true;
+                      hasLiked = nextHasLiked;
+                      likeCount = nextLikeCount;
+                    });
+                  }
 
-            await loadLikeData();
-          },
+                  try {
+                    await repository.toggleLike(
+                      postId: widget.postId,
+                      userId: widget.userId,
+                    );
+                  } catch (_) {
+                    if (mounted) {
+                      setState(() {
+                        hasLiked = !nextHasLiked;
+                        likeCount = nextHasLiked
+                            ? (likeCount > 0 ? likeCount - 1 : 0)
+                            : likeCount + 1;
+                      });
+                    }
+
+                    await loadLikeData();
+                  } finally {
+                    if (mounted) {
+                      setState(() {
+                        _isToggling = false;
+                      });
+                    }
+                  }
+                },
         ),
 
         Text('$likeCount'),

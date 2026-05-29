@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -33,14 +36,7 @@ class _AvatarPickerState extends State<AvatarPicker> {
             radius: 50,
             child: _hasAvatarUrl
                 ? ClipOval(
-                    child: Image.network(
-                      widget.currentImageUrl!,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          const Icon(Icons.person, size: 50),
-                    ),
+                    child: _AvatarImage(source: widget.currentImageUrl!),
                   )
                 : const Icon(Icons.person, size: 50),
           ),
@@ -75,6 +71,51 @@ class _AvatarPickerState extends State<AvatarPicker> {
           context,
         ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
       }
+    }
+  }
+}
+
+class _AvatarImage extends StatelessWidget {
+  final String source;
+
+  const _AvatarImage({required this.source});
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isDataUri(source)) {
+      final bytes = _decodeImageBytes(source);
+      if (bytes != null) {
+        return Image.memory(
+          bytes,
+          width: 100,
+          height: 100,
+          fit: BoxFit.cover,
+        );
+      }
+    }
+
+    return Image.network(
+      source,
+      width: 100,
+      height: 100,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => const Icon(Icons.person, size: 50),
+    );
+  }
+
+  static bool _isDataUri(String value) => value.startsWith('data:image');
+
+  static Uint8List? _decodeImageBytes(String value) {
+    final commaIndex = value.indexOf(',');
+    if (commaIndex == -1) {
+      return null;
+    }
+
+    final encoded = value.substring(commaIndex + 1);
+    try {
+      return base64Decode(encoded);
+    } catch (_) {
+      return null;
     }
   }
 }
