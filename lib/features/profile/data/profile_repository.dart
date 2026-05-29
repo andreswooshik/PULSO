@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -30,17 +30,29 @@ class ProfileRepository {
       throw StateError('Profile not found.');
     }
 
-    final countsRow = await _client
-        .from('profile_follow_counts')
-        .select('followers_count, following_count')
-        .eq('profile_id', userId)
-        .maybeSingle();
+    Map<String, dynamic>? countsRow;
+    try {
+      countsRow = await _client
+          .from('profile_follow_counts')
+          .select('followers_count, following_count')
+          .eq('profile_id', userId)
+          .maybeSingle();
+    } catch (error) {
+      debugPrint('Could not load profile follow counts: $error');
+      countsRow = null;
+    }
 
-    final postCountsRow = await _client
-        .from('profile_post_counts')
-        .select('posts_count')
-        .eq('profile_id', userId)
-        .maybeSingle();
+    Map<String, dynamic>? postCountsRow;
+    try {
+      postCountsRow = await _client
+          .from('profile_post_counts')
+          .select('posts_count')
+          .eq('profile_id', userId)
+          .maybeSingle();
+    } catch (error) {
+      debugPrint('Could not load profile post counts: $error');
+      postCountsRow = null;
+    }
     final username = (row['username'] as String?)?.trim();
     final displayName = (row['display_name'] as String?)?.trim();
     final firstName = (row['first_name'] as String?)?.trim();
@@ -101,18 +113,22 @@ class ProfileRepository {
         .whereType<String>()
         .toSet();
 
-    final countRows = await _client
-        .from('profile_follow_counts')
-        .select('profile_id, followers_count, following_count')
-        .inFilter('profile_id', ids);
-
     final countByProfileId = <String, Map<String, int>>{};
-    for (final row in countRows) {
-      final map = row;
-      countByProfileId[map['profile_id'] as String? ?? ''] = {
-        'followers_count': map['followers_count'] as int? ?? 0,
-        'following_count': map['following_count'] as int? ?? 0,
-      };
+    try {
+      final countRows = await _client
+          .from('profile_follow_counts')
+          .select('profile_id, followers_count, following_count')
+          .inFilter('profile_id', ids);
+
+      for (final row in countRows) {
+        final map = row;
+        countByProfileId[map['profile_id'] as String? ?? ''] = {
+          'followers_count': map['followers_count'] as int? ?? 0,
+          'following_count': map['following_count'] as int? ?? 0,
+        };
+      }
+    } catch (error) {
+      debugPrint('Could not load discover profile counts: $error');
     }
 
     return profileMaps
@@ -142,17 +158,29 @@ class ProfileRepository {
       return null;
     }
 
-    final followCountsRow = await _client
-        .from('profile_follow_counts')
-        .select('followers_count, following_count')
-        .eq('profile_id', userId)
-        .maybeSingle();
+    Map<String, dynamic>? followCountsRow;
+    try {
+      followCountsRow = await _client
+          .from('profile_follow_counts')
+          .select('followers_count, following_count')
+          .eq('profile_id', userId)
+          .maybeSingle();
+    } catch (error) {
+      debugPrint('Could not load profile follow counts: $error');
+      followCountsRow = null;
+    }
 
-    final postCountsRow = await _client
-        .from('profile_post_counts')
-        .select('posts_count')
-        .eq('profile_id', userId)
-        .maybeSingle();
+    Map<String, dynamic>? postCountsRow;
+    try {
+      postCountsRow = await _client
+          .from('profile_post_counts')
+          .select('posts_count')
+          .eq('profile_id', userId)
+          .maybeSingle();
+    } catch (error) {
+      debugPrint('Could not load profile post counts: $error');
+      postCountsRow = null;
+    }
 
     return ProfileRecord.fromJson({
       ...response,
@@ -225,26 +253,16 @@ class ProfileRepository {
 
   Future<String?> uploadAvatar(String userId, XFile imageFile) async {
     try {
-      final fileExt = _imageExtension(imageFile.name);
-      final fileName = '$userId/${_uuidV4()}.$fileExt';
       final imageBytes = await imageFile.readAsBytes();
+      final fileExt = _imageExtension(imageFile.name);
+      final mimeType = switch (fileExt) {
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
+        _ => 'image/jpeg',
+      };
 
-      await _client.storage
-          .from('avatars')
-          .uploadBinary(
-            fileName,
-            imageBytes,
-            fileOptions: FileOptions(
-              cacheControl: '3600',
-              contentType: fileExt == 'jpg' ? 'image/jpeg' : 'image/$fileExt',
-              upsert: true,
-            ),
-          );
-
-      final imageUrlResponse = _client.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
-      return imageUrlResponse;
+      return 'data:$mimeType;base64,${base64Encode(imageBytes)}';
     } catch (e) {
       debugPrint('Error uploading avatar: $e');
       return null;
@@ -253,29 +271,11 @@ class ProfileRepository {
 
   String _imageExtension(String fileName) {
     final extension = fileName.split('.').last.toLowerCase();
-    if (extension == 'png' || extension == 'webp') {
+    if (extension == 'png' || extension == 'webp' || extension == 'gif') {
       return extension;
     }
 
     return 'jpg';
-  }
-
-  String _uuidV4() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-    String hexByte(int byte) => byte.toRadixString(16).padLeft(2, '0');
-    final hex = bytes.map(hexByte).join();
-
-    return [
-      hex.substring(0, 8),
-      hex.substring(8, 12),
-      hex.substring(12, 16),
-      hex.substring(16, 20),
-      hex.substring(20),
-    ].join('-');
   }
 
   static String _resolveDisplayName({
@@ -299,6 +299,7 @@ class ProfileRepository {
 
     return username?.isNotEmpty == true ? username! : 'Community Member';
   }
+
 }
 
 class ProfileRepositoryException implements Exception {

@@ -24,6 +24,7 @@ class CustomButton extends StatelessWidget {
         backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
         padding:
             padding ?? const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       onPressed: isLoading ? null : onPressed,
       child: isLoading
@@ -32,7 +33,13 @@ class CustomButton extends StatelessWidget {
               width: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(label),
+          : Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
     );
   }
 }

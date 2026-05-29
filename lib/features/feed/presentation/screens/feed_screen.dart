@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,7 +24,6 @@ class FeedScreen extends ConsumerStatefulWidget {
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   RealtimeChannel? _postsChannel;
-  RealtimeChannel? _likesChannel;
   RealtimeChannel? _commentsChannel;
   late final FeedRepository _repository;
 
@@ -52,17 +55,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         )
         .subscribe();
 
-    _likesChannel = supabase
-        .channel('likes_realtime')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'likes',
-          callback: (payload) async {
-            await _loadPosts();
-          },
-        )
-        .subscribe();
     _commentsChannel = supabase
         .channel('comments_realtime')
         .onPostgresChanges(
@@ -70,21 +62,27 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           schema: 'public',
           table: 'comments',
           callback: (payload) async {
-            await _loadPosts();
+            await _loadPosts(showLoading: false);
           },
         )
         .subscribe();
   }
 
-  Future<void> _loadPosts() async {
+  Future<void> _loadPosts({bool showLoading = true}) async {
     if (!mounted) {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    } else {
+      setState(() {
+        _errorMessage = null;
+      });
+    }
 
     try {
       final posts = await _repository.fetchPosts();
@@ -106,20 +104,28 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        if (showLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
 
   void _showComments(FeedPostRecord post) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) =>
-          CommentsSheet(postId: post.id, postLabel: '@${post.username}'),
+    Navigator.of(context, rootNavigator: true).push<void>(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: AppTheme.pearl,
+          body: SafeArea(
+            child: CommentsSheet(
+              postId: post.id,
+              postLabel: '@${post.username}',
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -132,10 +138,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   void dispose() {
     if (_postsChannel != null) {
       Supabase.instance.client.removeChannel(_postsChannel!);
-    }
-
-    if (_likesChannel != null) {
-      Supabase.instance.client.removeChannel(_likesChannel!);
     }
 
     if (_commentsChannel != null) {
@@ -253,7 +255,7 @@ class _HeroPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Comments now open into live threads, and follows are ready from the profile area.',
+            'Comments now open into threads, and follows are ready from the profile area.',
             style: TextStyle(color: AppTheme.pearl.withValues(alpha: 0.76)),
           ),
           const SizedBox(height: 16),
@@ -261,7 +263,7 @@ class _HeroPanel extends StatelessWidget {
             children: const [
               _SignalChip(label: 'Bayanihan', icon: Icons.groups_2_outlined),
               SizedBox(width: 8),
-              _SignalChip(label: 'Realtime', icon: Icons.sync),
+              _SignalChip(label: 'Updates', icon: Icons.sync),
             ],
           ),
         ],
@@ -318,10 +320,7 @@ class _PostCard extends StatelessWidget {
                 CircleAvatar(
                   backgroundColor: AppTheme.gold,
                   foregroundColor: Colors.black,
-                  child: Text(
-                    post.initials,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
+                  child: const FaIcon(FontAwesomeIcons.user, size: 16),
                 ),
                 const SizedBox(width: 10),
 
@@ -383,7 +382,9 @@ class _PostCard extends StatelessWidget {
                     )
                   : ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(post.imageUrl!, fit: BoxFit.cover),
+                      child: SizedBox.expand(
+                        child: _PostImage(source: post.imageUrl!),
+                      ),
                     ),
             ),
 
@@ -412,8 +413,8 @@ class _PostCard extends StatelessWidget {
 
                 Text(
                   post.commentCount == 1
-                      ? '1 live comment'
-                      : '${post.commentCount} live comments',
+                      ? '1 comment'
+                      : '${post.commentCount} comments',
                   style: TextStyle(
                     color: AppTheme.midnight.withValues(alpha: 0.68),
                     fontWeight: FontWeight.w600,
@@ -443,6 +444,40 @@ class _PostCard extends StatelessWidget {
     }
 
     return '${difference.inDays}d';
+  }
+}
+
+class _PostImage extends StatelessWidget {
+  final String source;
+
+  const _PostImage({required this.source});
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isDataUri(source)) {
+      final bytes = _decodeImageBytes(source);
+      if (bytes != null) {
+        return Image.memory(bytes, fit: BoxFit.cover);
+      }
+    }
+
+    return Image.network(source, fit: BoxFit.cover);
+  }
+
+  static bool _isDataUri(String value) => value.startsWith('data:image');
+
+  static Uint8List? _decodeImageBytes(String value) {
+    final commaIndex = value.indexOf(',');
+    if (commaIndex == -1) {
+      return null;
+    }
+
+    final encoded = value.substring(commaIndex + 1);
+    try {
+      return base64Decode(encoded);
+    } catch (_) {
+      return null;
+    }
   }
 }
 

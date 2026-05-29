@@ -20,7 +20,8 @@ class LikeRepository {
       await supabase
           .from('likes')
           .delete()
-          .eq('id', existing['id']);
+          .eq('post_id', postId)
+          .eq('user_id', userId);
     } else {
       await supabase.from('likes').insert({
         'post_id': postId,

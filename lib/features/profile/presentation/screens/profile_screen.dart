@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/core/widgets/widgets.dart';
@@ -482,10 +483,7 @@ class _DiscoverCard extends StatelessWidget {
               CircleAvatar(
                 backgroundColor: AppTheme.gold.withValues(alpha: 0.2),
                 foregroundColor: AppTheme.indigo,
-                child: Text(
-                  profile.initials,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
+                child: const FaIcon(FontAwesomeIcons.user, size: 16),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -531,10 +529,7 @@ class _DiscoverCard extends StatelessWidget {
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                profile.bio!,
-                style: const TextStyle(height: 1.35),
-              ),
+              child: Text(profile.bio!, style: const TextStyle(height: 1.35)),
             ),
           ],
           const SizedBox(height: 12),

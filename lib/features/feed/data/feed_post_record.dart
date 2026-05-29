@@ -27,6 +27,7 @@ class FeedPostRecord {
   }) {
     final profile = _profileMap(map['profiles']);
     final username = (profile?['username'] as String?)?.trim();
+    final fullName = (profile?['full_name'] as String?)?.trim();
     final displayName = (profile?['display_name'] as String?)?.trim();
     final firstName = (profile?['first_name'] as String?)?.trim();
     final lastName = (profile?['last_name'] as String?)?.trim();
@@ -41,6 +42,7 @@ class FeedPostRecord {
           DateTime.fromMillisecondsSinceEpoch(0),
       username: username?.isNotEmpty == true ? username! : 'community_member',
       displayName: _resolveDisplayName(
+        fullName: fullName,
         displayName: displayName,
         firstName: firstName,
         lastName: lastName,
@@ -71,11 +73,16 @@ class FeedPostRecord {
   }
 
   static String _resolveDisplayName({
+    required String? fullName,
     required String? displayName,
     required String? firstName,
     required String? lastName,
     required String? username,
   }) {
+    if (fullName?.isNotEmpty == true) {
+      return fullName!;
+    }
+
     if (displayName?.isNotEmpty == true) {
       return displayName!;
     }
