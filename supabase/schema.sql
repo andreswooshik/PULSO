@@ -336,11 +336,21 @@ grant select on public.post_comment_counts to anon, authenticated;
 grant select on public.profile_follow_counts to anon, authenticated;
 grant select on public.profile_post_counts to anon, authenticated;
 
-notify pgrst, 'reload schema';
-create or replace function get_email_by_username(p_username text)
+create or replace function public.get_email_by_username(requested_username text)
 returns text
 language sql
+stable
 security definer
-as $body$
-  select email from public.profiles where username = p_username limit 1;
-$body$;
+set search_path = public
+as $$
+  select email
+  from public.profiles
+  where public.normalize_username(username) =
+    public.normalize_username(requested_username)
+  limit 1;
+$$;
+
+grant execute on function public.get_email_by_username(text) to anon;
+grant execute on function public.get_email_by_username(text) to authenticated;
+
+notify pgrst, 'reload schema';

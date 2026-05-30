@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:pulso/features/auth/data/auth_service.dart';
@@ -7,10 +9,19 @@ class MockSupabaseClient extends Mock implements SupabaseClient {}
 
 class MockGoTrueClient extends Mock implements GoTrueClient {}
 
+class MockPostgrestFilterBuilder extends Mock
+    implements PostgrestFilterBuilder<dynamic> {}
+
+dynamic _fallbackOnValue(dynamic value) => value;
+
 void main() {
   late MockSupabaseClient supabaseClient;
   late MockGoTrueClient authClient;
   late AuthService authService;
+
+  setUpAll(() {
+    registerFallbackValue(_fallbackOnValue);
+  });
 
   setUp(() {
     supabaseClient = MockSupabaseClient();
@@ -43,6 +54,58 @@ void main() {
         verify(
           () => authClient.signInWithPassword(
             email: 'user@example.com',
+            password: 'securePassword123',
+          ),
+        ).called(1);
+      },
+    );
+
+    test(
+      'signInWithEmailOrUsername resolves normalized username before login',
+      () async {
+        final user = _testUser();
+        final response = AuthResponse(user: user);
+        final usernameLookup = MockPostgrestFilterBuilder();
+
+        when(
+          () => supabaseClient.rpc(
+            'get_email_by_username',
+            params: any(named: 'params'),
+          ),
+        ).thenAnswer((_) => usernameLookup);
+        when(
+          () => usernameLookup.then<dynamic>(
+            any<FutureOr<dynamic> Function(dynamic)>(),
+            onError: any(named: 'onError'),
+          ),
+        ).thenAnswer((invocation) async {
+          final onValue =
+              invocation.positionalArguments.first
+                  as FutureOr<dynamic> Function(dynamic);
+          return onValue('juan@example.com');
+        });
+        when(
+          () => authClient.signInWithPassword(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+          ),
+        ).thenAnswer((_) async => response);
+
+        final result = await authService.signInWithEmailOrUsername(
+          identifier: ' Juan_DelaCruz ',
+          password: 'securePassword123',
+        );
+
+        expect(result.user, user);
+        verify(
+          () => supabaseClient.rpc(
+            'get_email_by_username',
+            params: {'requested_username': 'juan_delacruz'},
+          ),
+        ).called(1);
+        verify(
+          () => authClient.signInWithPassword(
+            email: 'juan@example.com',
             password: 'securePassword123',
           ),
         ).called(1);

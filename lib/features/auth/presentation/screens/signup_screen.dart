@@ -40,6 +40,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(authUiProvider.notifier).showSignup();
+      }
+    });
+
     for (final controller in [
       _firstNameController,
       _middleInitialController,
@@ -230,7 +236,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               alignment: Alignment.centerLeft,
                               child: IconButton(
                                 tooltip: 'Back',
-                                onPressed: () => context.go(AppRoutes.login),
+                                onPressed: () {
+                                  authNotifier.showLogin();
+                                  context.go(AppRoutes.login);
+                                },
                                 icon: const Icon(Icons.arrow_back),
                               ),
                             ),
@@ -995,7 +1004,8 @@ class _MagicDustPainter extends CustomPainter {
       final ringRadius = 3.8 + (1 - localProgress) * 2.1;
       final edgeJitter = random.nextDouble() * 0.8;
       final dx = math.cos(angle) * (ringRadius + edgeJitter);
-      final dy = -math.sin(angle).abs() * (1.2 + localProgress * 2.0) -
+      final dy =
+          -math.sin(angle).abs() * (1.2 + localProgress * 2.0) -
           random.nextDouble() * 0.7;
       final opacity = (1 - localProgress).clamp(0.0, 1.0);
       final radius = 0.8 + random.nextDouble() * 1.1;

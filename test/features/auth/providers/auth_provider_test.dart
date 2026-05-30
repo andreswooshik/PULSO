@@ -45,6 +45,19 @@ void main() {
     });
   });
 
+  group('AuthUiNotifier screen changes', () {
+    test('clears stale messages when opening signup', () {
+      final notifier = AuthUiNotifier(authService);
+
+      notifier.showValidationError('Could not resolve username.');
+      notifier.showSignup();
+
+      expect(notifier.state.screenMode, AuthScreenMode.signup);
+      expect(notifier.state.errorMessage, isNull);
+      expect(notifier.state.infoMessage, isNull);
+    });
+  });
+
   group('AuthUiNotifier signup username availability', () {
     test('shows an error when username is already taken', () async {
       final notifier = AuthUiNotifier(authService);

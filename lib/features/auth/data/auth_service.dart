@@ -59,14 +59,16 @@ class AuthService {
 
     // If identifier is not an email, assume it is a username and look up the email
     if (!_isEmail(cleanIdentifier)) {
+      final cleanUsername = _normalizeUsername(cleanIdentifier);
       try {
         final response = await _client.rpc(
           'get_email_by_username',
-          params: {'p_username': cleanIdentifier},
+          params: {'requested_username': cleanUsername},
         );
-        
-        if (response != null && response.toString().isNotEmpty) {
-          loginEmail = response as String;
+
+        final resolvedEmail = response?.toString().trim();
+        if (resolvedEmail != null && resolvedEmail.isNotEmpty) {
+          loginEmail = resolvedEmail;
         } else {
           // If RPC returns null or we can't find it, Supabase will just fail the login attempt
           // Or we can throw an explicit error.
@@ -75,7 +77,8 @@ class AuthService {
       } catch (e) {
         if (e is AuthServiceException) rethrow; // Pass up known exception
         throw AuthServiceException(
-            'Could not resolve username. Please ensure the database setup is complete or try using an email.');
+          'Could not resolve username. Please ensure the database setup is complete or try using an email.',
+        );
       }
     }
 
