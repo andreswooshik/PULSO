@@ -1,3 +1,0 @@
-flutter run -d adb-10AF8Z04SD0029F-ovzMiR._adb-tls-connect._tcp  \
-  --dart-define=SUPABASE_URL=https://sdnbfyohsehurkelghkj.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=sb_publishable_Xk17H-sJ-ic86tWXFCt1Ig_5mRD-G1F

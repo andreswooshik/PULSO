@@ -193,8 +193,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               children: [
                                 const Text("Don't have an account? "),
                                 TextButton(
-                                  onPressed: () =>
-                                      context.push(AppRoutes.signup),
+                                  onPressed: () {
+                                    authNotifier.showSignup();
+                                    context.push(AppRoutes.signup);
+                                  },
                                   child: const Text(
                                     'Sign Up',
                                     style: TextStyle(color: AppTheme.royalBlue),
