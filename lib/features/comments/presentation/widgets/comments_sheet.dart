@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:pulso/core/supabase/supabase_provider.dart';
 import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/core/widgets/widgets.dart';
 import 'package:pulso/features/comments/data/comment_record.dart';
 import 'package:pulso/features/comments/data/comment_repository.dart';
+import 'package:pulso/features/comments/providers/comment_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class CommentsSheet extends StatefulWidget {
+class CommentsSheet extends ConsumerStatefulWidget {
   final String postId;
   final String postLabel;
 
@@ -17,10 +20,10 @@ class CommentsSheet extends StatefulWidget {
   });
 
   @override
-  State<CommentsSheet> createState() => _CommentsSheetState();
+  ConsumerState<CommentsSheet> createState() => _CommentsSheetState();
 }
 
-class _CommentsSheetState extends State<CommentsSheet> {
+class _CommentsSheetState extends ConsumerState<CommentsSheet> {
   late final SupabaseClient _client;
   late final CommentRepository _repository;
   final TextEditingController _commentController = TextEditingController();
@@ -35,8 +38,8 @@ class _CommentsSheetState extends State<CommentsSheet> {
   @override
   void initState() {
     super.initState();
-    _client = Supabase.instance.client;
-    _repository = CommentRepository(_client);
+    _client = ref.read(supabaseProvider);
+    _repository = ref.read(commentRepositoryProvider);
     _loadComments(showLoadingIndicator: true);
     _subscribeToRealtime();
   }

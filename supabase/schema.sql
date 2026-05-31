@@ -2,7 +2,9 @@ create extension if not exists "pgcrypto";
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  username text unique not null,
+  username text unique not null check (
+    username = lower(trim(username)) and username ~ '^[a-z0-9_]{3,24}$'
+  ),
   email text,
   first_name text not null,
   middle_initial text,
@@ -13,11 +15,17 @@ create table if not exists public.profiles (
   ),
   birthday date not null,
   full_name text,
+  display_name text,
   account_type text not null default 'personal' check (
     account_type in ('personal', 'business', 'organization')
   ),
-  bio text,
-  avatar_url text,
+  bio text check (bio is null or char_length(bio) <= 160),
+  avatar_url text check (
+    avatar_url is null or (
+      char_length(avatar_url) <= 2048 and
+      avatar_url !~ '^data:image'
+    )
+  ),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -25,8 +33,13 @@ create table if not exists public.profiles (
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
-  image_url text,
-  caption text,
+  image_url text check (
+    image_url is null or (
+      char_length(image_url) <= 2048 and
+      image_url !~ '^data:image'
+    )
+  ),
+  caption text not null check (char_length(trim(caption)) between 1 and 500),
   created_at timestamptz not null default now()
 );
 
@@ -79,6 +92,9 @@ alter table public.profiles
 add column if not exists full_name text;
 
 alter table public.profiles
+add column if not exists display_name text;
+
+alter table public.profiles
 add column if not exists account_type text default 'personal';
 
 alter table public.profiles
@@ -89,6 +105,62 @@ add column if not exists avatar_url text;
 
 alter table public.comments
 add column if not exists updated_at timestamptz not null default now();
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'profiles_username_format_check'
+  ) then
+    alter table public.profiles
+    add constraint profiles_username_format_check
+    check (
+      username = lower(trim(username)) and
+      username ~ '^[a-z0-9_]{3,24}$'
+    ) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'profiles_bio_length_check'
+  ) then
+    alter table public.profiles
+    add constraint profiles_bio_length_check
+    check (bio is null or char_length(bio) <= 160) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'profiles_avatar_url_storage_check'
+  ) then
+    alter table public.profiles
+    add constraint profiles_avatar_url_storage_check
+    check (
+      avatar_url is null or (
+        char_length(avatar_url) <= 2048 and
+        avatar_url !~ '^data:image'
+      )
+    ) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'posts_caption_length_check'
+  ) then
+    alter table public.posts
+    add constraint posts_caption_length_check
+    check (caption is not null and char_length(trim(caption)) between 1 and 500) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'posts_image_url_storage_check'
+  ) then
+    alter table public.posts
+    add constraint posts_image_url_storage_check
+    check (
+      image_url is null or (
+        char_length(image_url) <= 2048 and
+        image_url !~ '^data:image'
+      )
+    ) not valid;
+  end if;
+end $$;
 
 create unique index if not exists profiles_username_lower_key
 on public.profiles (lower(trim(username)))
@@ -120,7 +192,7 @@ to authenticated
 using (true);
 
 create or replace view public.public_profiles as
-select id, username, full_name, bio, avatar_url, created_at, updated_at
+select id, username, full_name, display_name, bio, avatar_url, created_at, updated_at
 from public.profiles;
 
 grant select on public.public_profiles to anon, authenticated;
@@ -256,6 +328,7 @@ begin
     gender,
     birthday,
     full_name,
+    display_name,
     account_type,
     updated_at
   )
@@ -269,6 +342,7 @@ begin
     nullif(new.raw_user_meta_data->>'suffix', ''),
     new.raw_user_meta_data->>'gender',
     (new.raw_user_meta_data->>'birthday')::date,
+    new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'full_name',
     coalesce(new.raw_user_meta_data->>'account_type', 'personal'),
     now()
@@ -284,6 +358,7 @@ begin
     gender = excluded.gender,
     birthday = excluded.birthday,
     full_name = excluded.full_name,
+    display_name = excluded.display_name,
     account_type = excluded.account_type,
     updated_at = excluded.updated_at;
 
@@ -352,5 +427,113 @@ $$;
 
 grant execute on function public.get_email_by_username(text) to anon;
 grant execute on function public.get_email_by_username(text) to authenticated;
+
+insert into storage.buckets (
+  id,
+  name,
+  public,
+  file_size_limit,
+  allowed_mime_types
+)
+values
+  (
+    'posts',
+    'posts',
+    true,
+    5242880,
+    array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  ),
+  (
+    'avatars',
+    'avatars',
+    true,
+    2097152,
+    array['image/jpeg', 'image/png', 'image/webp']
+  )
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "post images are publicly readable" on storage.objects;
+create policy "post images are publicly readable"
+on storage.objects for select
+using (bucket_id = 'posts');
+
+drop policy if exists "users can upload their post images" on storage.objects;
+create policy "users can upload their post images"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'posts' and
+  owner = auth.uid() and
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "users can update their post images" on storage.objects;
+create policy "users can update their post images"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'posts' and
+  owner = auth.uid() and
+  (storage.foldername(name))[1] = auth.uid()::text
+)
+with check (
+  bucket_id = 'posts' and
+  owner = auth.uid() and
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "users can delete their post images" on storage.objects;
+create policy "users can delete their post images"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'posts' and
+  owner = auth.uid() and
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "avatars are publicly readable" on storage.objects;
+create policy "avatars are publicly readable"
+on storage.objects for select
+using (bucket_id = 'avatars');
+
+drop policy if exists "users can upload their avatar" on storage.objects;
+create policy "users can upload their avatar"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'avatars' and
+  owner = auth.uid() and
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "users can update their avatar" on storage.objects;
+create policy "users can update their avatar"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'avatars' and
+  owner = auth.uid() and
+  (storage.foldername(name))[1] = auth.uid()::text
+)
+with check (
+  bucket_id = 'avatars' and
+  owner = auth.uid() and
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "users can delete their avatar" on storage.objects;
+create policy "users can delete their avatar"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'avatars' and
+  owner = auth.uid() and
+  (storage.foldername(name))[1] = auth.uid()::text
+);
 
 notify pgrst, 'reload schema';

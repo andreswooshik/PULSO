@@ -363,10 +363,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               },
                             ),
                             const SizedBox(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                const Text('Already have an account? '),
+                                const Text('Already have an account?'),
                                 TextButton(
                                   onPressed: () {
                                     authNotifier.showLogin();

@@ -12,81 +12,83 @@ import 'package:pulso/features/posts/presentation/screens/create_post_screen.dar
 import 'package:pulso/features/profile/presentation/screens/profile_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-final _routerRefreshNotifier = _RouterRefreshNotifier();
+GoRouter createAppRouter() {
+  final routerRefreshNotifier = _RouterRefreshNotifier();
 
-final appRouter = GoRouter(
-  initialLocation: AppRoutes.login,
-  refreshListenable: _routerRefreshNotifier,
-  redirect: (context, state) {
-    final isAuthenticated = _hasActiveSession();
-    final isAuthRoute =
-        state.matchedLocation == AppRoutes.login ||
-        state.matchedLocation == AppRoutes.signup;
+  return GoRouter(
+    initialLocation: AppRoutes.login,
+    refreshListenable: routerRefreshNotifier,
+    redirect: (context, state) {
+      final isAuthenticated = _hasActiveSession();
+      final isAuthRoute =
+          state.matchedLocation == AppRoutes.login ||
+          state.matchedLocation == AppRoutes.signup;
 
-    if (!isAuthenticated && !isAuthRoute) {
-      return AppRoutes.login;
-    }
+      if (!isAuthenticated && !isAuthRoute) {
+        return AppRoutes.login;
+      }
 
-    if (isAuthenticated && isAuthRoute) {
-      return AppRoutes.feed;
-    }
+      if (isAuthenticated && isAuthRoute) {
+        return AppRoutes.feed;
+      }
 
-    return null;
-  },
-  routes: [
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) {
-        return AppShell(navigationShell: navigationShell);
-      },
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: AppRoutes.feed,
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: FeedScreen()),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: AppRoutes.createPost,
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: CreatePostScreen()),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: AppRoutes.activity,
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: ActivityScreen()),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: AppRoutes.profile,
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: ProfileScreen()),
-            ),
-          ],
-        ),
-      ],
-    ),
-    GoRoute(
-      path: AppRoutes.login,
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.signup,
-      builder: (context, state) => const SignupScreen(),
-    ),
-  ],
-);
+      return null;
+    },
+    routes: [
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AppShell(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.feed,
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: FeedScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.createPost,
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: CreatePostScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.activity,
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: ActivityScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.profile,
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: ProfileScreen()),
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.signup,
+        builder: (context, state) => const SignupScreen(),
+      ),
+    ],
+  );
+}
 
 bool _hasActiveSession() {
   try {

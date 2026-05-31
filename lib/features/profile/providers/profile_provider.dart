@@ -1,18 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pulso/core/supabase/supabase_provider.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 import 'package:pulso/features/profile/data/profile_record.dart';
 import 'package:pulso/features/profile/data/profile_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  return ProfileRepository(Supabase.instance.client);
+  return ProfileRepository(ref.watch(supabaseProvider));
 });
 
 final currentProfileProvider = FutureProvider<ProfileRecord?>((ref) async {
   final authState = ref.watch(authUiProvider);
   final userId =
-      authState.userId ?? Supabase.instance.client.auth.currentUser?.id;
+      authState.userId ?? ref.watch(supabaseProvider).auth.currentUser?.id;
 
   if (userId == null) {
     return null;

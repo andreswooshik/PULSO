@@ -20,11 +20,6 @@ class PulsoBrandLogo extends StatelessWidget {
         ? 'assets/branding/pulso_mark.png'
         : 'assets/branding/pulso_wordmark.png';
 
-    return Image.asset(
-      assetPath,
-      width: width,
-      height: height,
-      fit: fit,
-    );
+    return Image.asset(assetPath, width: width, height: height, fit: fit);
   }
 }

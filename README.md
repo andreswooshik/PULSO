@@ -42,17 +42,17 @@ cd PULSO
 flutter pub get
 ```
 
-Create a local `.env` file in the project root:
+For local development, create an ignored `.env` file in the project root:
 
 ```env
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-Then run the app:
+Then run the app with `--dart-define` values so credentials are not bundled as Flutter assets:
 
 ```powershell
-flutter run -d chrome
+flutter run -d chrome --dart-define=SUPABASE_URL=your_supabase_project_url --dart-define=SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 You can also run on another available device:
@@ -67,7 +67,7 @@ flutter run -d <device-id>
 1. Create or open a Supabase project.
 2. Open the Supabase SQL Editor.
 3. Run the full SQL script in `supabase/schema.sql`.
-4. Confirm that the app's `.env` values match your Supabase project URL and anon key.
+4. Confirm that the app's `.env` or `--dart-define` values match your Supabase project URL and anon key.
 5. Fully restart the Flutter app after changing `.env` values.
 
 The schema includes:
@@ -75,6 +75,7 @@ The schema includes:
 - `profiles`, `posts`, `likes`, `comments`, and `follows` tables.
 - Row level security policies for authenticated user actions.
 - Public profile/count views used by the feed and profile screens.
+- Storage buckets and policies for post images and profile avatars.
 - Username helpers such as `normalize_username`, `is_username_available`, and `get_email_by_username`.
 - A trigger that creates or updates a profile row after a Supabase Auth user is created.
 
@@ -82,6 +83,7 @@ The schema includes:
 
 - Do not commit `.env` or any secret keys.
 - `.env` is listed in `.gitignore`.
+- `.env` is not listed as a Flutter asset, so it is not intentionally bundled into client builds.
 - Use only the Supabase anon key in the Flutter app.
 - Never place a Supabase service role key in client-side code.
 - Keep username validation on both the client and database side.
@@ -150,6 +152,8 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 
 After editing `.env`, stop and rerun the Flutter app.
 
+For production-like runs, pass the same values with `--dart-define`.
+
 ### Username login does not work
 
 Email login uses Supabase Auth directly. Username login first resolves the username to an email through the `get_email_by_username` RPC. If username login fails:
@@ -162,6 +166,19 @@ Email login uses Supabase Auth directly. Username login first resolves the usern
 ### Signup says username is taken
 
 The app normalizes usernames by trimming spaces and lowercasing them. For example, `Juan_DelaCruz` and `juan_delacruz` are treated as the same username.
+
+## Future Improvements
+
+This project was submitted as a school requirement, but it can still be improved as a portfolio project. Good next steps include:
+
+- Add GitHub Actions CI to run `flutter analyze` and `flutter test` on every pull request.
+- Add more tests for post creation, image upload failures, avatar upload failures, comments, likes, follows, and profile editing.
+- Move username login behind a backend or Supabase Edge Function with rate limiting so the app does not directly resolve usernames to emails.
+- Split large screens such as signup, feed, and profile into smaller widgets and controllers.
+- Add stronger production observability, including structured error logging and monitoring.
+- Add polished loading, empty, offline, and retry states across all social features.
+- Add screenshots, a demo video link, and an architecture diagram to the README.
+- Rotate any Supabase anon key that may have appeared in git history and keep all future credentials outside committed files.
 
 ## Contributors
 
