@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:pulso/features/feed/data/feed_post_record.dart';
@@ -6,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class FeedRepository {
   final SupabaseClient _client;
   static const int defaultFeedLimit = 20;
+  static const int maxPostImageBytes = 5 * 1024 * 1024;
 
   FeedRepository(this._client);
 
@@ -83,7 +85,13 @@ class FeedRepository {
       'caption': caption.trim(),
     };
 
-    if (imageBytes != null && imageFileName != null && imageFileName.isNotEmpty) {
+    if (imageBytes != null &&
+        imageFileName != null &&
+        imageFileName.isNotEmpty) {
+      if (imageBytes.length > maxPostImageBytes) {
+        throw StateError('Post image must be 5 MB or smaller.');
+      }
+
       final fileExt = _imageExtension(imageFileName);
       final storagePath = '$userId/${_uuidV4()}.$fileExt';
 
@@ -99,7 +107,9 @@ class FeedRepository {
             ),
           );
 
-      payload['image_url'] = _client.storage.from('posts').getPublicUrl(storagePath);
+      payload['image_url'] = _client.storage
+          .from('posts')
+          .getPublicUrl(storagePath);
     }
 
     await _client.from('posts').insert(payload);
@@ -115,7 +125,8 @@ class FeedRepository {
   }
 
   String _uuidV4() {
-    final bytes = List<int>.generate(16, (_) => DateTime.now().microsecondsSinceEpoch.remainder(256));
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
 

@@ -188,10 +188,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: const Text('Forgot password?'),
                             ),
                             const SizedBox(height: 18),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                const Text("Don't have an account? "),
+                                const Text("Don't have an account?"),
                                 TextButton(
                                   onPressed: () {
                                     authNotifier.showSignup();

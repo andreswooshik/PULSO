@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileRepository {
   final SupabaseClient _client;
+  static const int maxAvatarBytes = 2 * 1024 * 1024;
 
   ProfileRepository(this._client);
 
@@ -136,10 +137,12 @@ class ProfileRepository {
           (row) => FollowSuggestionRecord.fromMap(
             row,
             followersCount:
-                countByProfileId[row['id'] as String? ?? '']?['followers_count'] ??
+                countByProfileId[row['id'] as String? ??
+                    '']?['followers_count'] ??
                 0,
             followingCount:
-                countByProfileId[row['id'] as String? ?? '']?['following_count'] ??
+                countByProfileId[row['id'] as String? ??
+                    '']?['following_count'] ??
                 0,
             isFollowing: followingIds.contains(row['id']),
           ),
@@ -254,15 +257,33 @@ class ProfileRepository {
   Future<String?> uploadAvatar(String userId, XFile imageFile) async {
     try {
       final imageBytes = await imageFile.readAsBytes();
+      if (imageBytes.length > maxAvatarBytes) {
+        throw const ProfileRepositoryException(
+          'Avatar image must be 2 MB or smaller.',
+        );
+      }
+
       final fileExt = _imageExtension(imageFile.name);
       final mimeType = switch (fileExt) {
         'png' => 'image/png',
         'webp' => 'image/webp',
-        'gif' => 'image/gif',
         _ => 'image/jpeg',
       };
+      final storagePath = '$userId/${_uuidV4()}.$fileExt';
 
-      return 'data:$mimeType;base64,${base64Encode(imageBytes)}';
+      await _client.storage
+          .from('avatars')
+          .uploadBinary(
+            storagePath,
+            imageBytes,
+            fileOptions: FileOptions(
+              cacheControl: '3600',
+              contentType: mimeType,
+              upsert: false,
+            ),
+          );
+
+      return _client.storage.from('avatars').getPublicUrl(storagePath);
     } catch (e) {
       debugPrint('Error uploading avatar: $e');
       return null;
@@ -271,11 +292,29 @@ class ProfileRepository {
 
   String _imageExtension(String fileName) {
     final extension = fileName.split('.').last.toLowerCase();
-    if (extension == 'png' || extension == 'webp' || extension == 'gif') {
+    if (extension == 'png' || extension == 'webp') {
       return extension;
     }
 
     return 'jpg';
+  }
+
+  String _uuidV4() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    String hexByte(int byte) => byte.toRadixString(16).padLeft(2, '0');
+    final hex = bytes.map(hexByte).join();
+
+    return [
+      hex.substring(0, 8),
+      hex.substring(8, 12),
+      hex.substring(12, 16),
+      hex.substring(16, 20),
+      hex.substring(20),
+    ].join('-');
   }
 
   static String _resolveDisplayName({
@@ -299,7 +338,6 @@ class ProfileRepository {
 
     return username?.isNotEmpty == true ? username! : 'Community Member';
   }
-
 }
 
 class ProfileRepositoryException implements Exception {

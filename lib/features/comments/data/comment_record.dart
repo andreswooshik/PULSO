@@ -61,7 +61,9 @@ class CommentRecord {
     if (value is Map<String, dynamic>) {
       return value;
     }
-    if (value is List && value.isNotEmpty && value.first is Map<String, dynamic>) {
+    if (value is List &&
+        value.isNotEmpty &&
+        value.first is Map<String, dynamic>) {
       return value.first as Map<String, dynamic>;
     }
     return null;

@@ -6,12 +6,12 @@ import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/core/widgets/widgets.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 import 'package:pulso/features/follows/data/follow_repository.dart';
+import 'package:pulso/features/follows/providers/follow_provider.dart';
 import 'package:pulso/features/profile/data/follow_suggestion_record.dart';
 import 'package:pulso/features/profile/data/profile_record.dart';
 import 'package:pulso/features/profile/data/profile_repository.dart';
 import 'package:pulso/features/profile/presentation/widgets/profile_widgets.dart';
 import 'package:pulso/features/profile/providers/profile_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -32,9 +32,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final client = Supabase.instance.client;
-    _profileRepository = ProfileRepository(client);
-    _followRepository = FollowRepository(client);
+    _profileRepository = ref.read(profileRepositoryProvider);
+    _followRepository = ref.read(followRepositoryProvider);
     _loadSuggestions();
   }
 

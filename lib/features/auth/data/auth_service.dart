@@ -70,9 +70,7 @@ class AuthService {
         if (resolvedEmail != null && resolvedEmail.isNotEmpty) {
           loginEmail = resolvedEmail;
         } else {
-          // If RPC returns null or we can't find it, Supabase will just fail the login attempt
-          // Or we can throw an explicit error.
-          throw const AuthServiceException('Username not found or invalid.');
+          throw const AuthServiceException('Invalid login credentials.');
         }
       } catch (e) {
         if (e is AuthServiceException) rethrow; // Pass up known exception

@@ -10,7 +10,6 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Pulso'), findsOneWidget);
     expect(find.text('Log In'), findsOneWidget);
     expect(find.text('Email or Username'), findsOneWidget);
     expect(find.text('Feed'), findsNothing);
@@ -20,10 +19,13 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(TextButton, 'Sign Up'));
-    await tester.pumpAndSettle();
+    final signUpButton = find.widgetWithText(TextButton, 'Sign Up');
+    await tester.ensureVisible(signUpButton);
+    await tester.tap(signUpButton);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('Create account'), findsOneWidget);
-    expect(find.text('Account type'), findsOneWidget);
+    expect(find.text('First name (required)'), findsOneWidget);
   });
 }

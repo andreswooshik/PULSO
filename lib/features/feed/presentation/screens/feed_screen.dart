@@ -6,12 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pulso/core/routing/app_routes.dart';
+import 'package:pulso/core/supabase/supabase_provider.dart';
 import 'package:pulso/core/theme/app_theme.dart';
 import 'package:pulso/core/widgets/widgets.dart';
 import 'package:pulso/features/auth/providers/auth_provider.dart';
 import 'package:pulso/features/comments/presentation/widgets/comments_sheet.dart';
 import 'package:pulso/features/feed/data/feed_post_record.dart';
 import 'package:pulso/features/feed/data/feed_repository.dart';
+import 'package:pulso/features/feed/providers/feed_provider.dart';
 import 'package:pulso/features/likes/widgets/like_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -25,6 +27,7 @@ class FeedScreen extends ConsumerStatefulWidget {
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   RealtimeChannel? _postsChannel;
   RealtimeChannel? _commentsChannel;
+  late final SupabaseClient _client;
   late final FeedRepository _repository;
 
   List<FeedPostRecord> _posts = const [];
@@ -34,16 +37,15 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   @override
   void initState() {
     super.initState();
-    _repository = FeedRepository(Supabase.instance.client);
+    _client = ref.read(supabaseProvider);
+    _repository = ref.read(feedRepositoryProvider);
 
     _setupRealtime();
     _loadPosts();
   }
 
   void _setupRealtime() {
-    final supabase = Supabase.instance.client;
-
-    _postsChannel = supabase
+    _postsChannel = _client
         .channel('posts_realtime')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -55,7 +57,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         )
         .subscribe();
 
-    _commentsChannel = supabase
+    _commentsChannel = _client
         .channel('comments_realtime')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -137,11 +139,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   @override
   void dispose() {
     if (_postsChannel != null) {
-      Supabase.instance.client.removeChannel(_postsChannel!);
+      _client.removeChannel(_postsChannel!);
     }
 
     if (_commentsChannel != null) {
-      Supabase.instance.client.removeChannel(_commentsChannel!);
+      _client.removeChannel(_commentsChannel!);
     }
 
     super.dispose();
@@ -149,7 +151,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAuthenticated = ref.watch(authUiProvider).isAuthenticated;
+    final authState = ref.watch(authUiProvider);
+    final isAuthenticated = authState.isAuthenticated;
+    final currentUserId = authState.userId ?? _client.auth.currentUser?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -165,24 +169,23 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           ),
 
           if (!isAuthenticated)
-            if (!isAuthenticated)
-              IconButton(
-                tooltip: 'Login',
-                onPressed: () => context.push(AppRoutes.login),
-                icon: const Icon(Icons.login),
-              )
-            else ...[
-              IconButton(
-                tooltip: 'Profile',
-                onPressed: () => context.go(AppRoutes.profile),
-                icon: const Icon(Icons.person_outline),
-              ),
-              IconButton(
-                tooltip: 'Logout',
-                onPressed: _signOut,
-                icon: const Icon(Icons.logout),
-              ),
-            ],
+            IconButton(
+              tooltip: 'Login',
+              onPressed: () => context.push(AppRoutes.login),
+              icon: const Icon(Icons.login),
+            )
+          else ...[
+            IconButton(
+              tooltip: 'Profile',
+              onPressed: () => context.go(AppRoutes.profile),
+              icon: const Icon(Icons.person_outline),
+            ),
+            IconButton(
+              tooltip: 'Logout',
+              onPressed: _signOut,
+              icon: const Icon(Icons.logout),
+            ),
+          ],
         ],
       ),
       body: RefreshIndicator(
@@ -210,6 +213,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 (post) => [
                   _PostCard(
                     post: post,
+                    currentUserId: currentUserId,
                     onCommentsPressed: () => _showComments(post),
                   ),
                   const SizedBox(height: 14),
@@ -301,14 +305,17 @@ class _SignalChip extends StatelessWidget {
 
 class _PostCard extends StatelessWidget {
   final FeedPostRecord post;
+  final String? currentUserId;
   final VoidCallback onCommentsPressed;
 
-  const _PostCard({required this.post, required this.onCommentsPressed});
+  const _PostCard({
+    required this.post,
+    required this.currentUserId,
+    required this.onCommentsPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = Supabase.instance.client.auth.currentUser;
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -392,8 +399,8 @@ class _PostCard extends StatelessWidget {
 
             Row(
               children: [
-                if (currentUser != null)
-                  LikeButton(postId: post.id, userId: currentUser.id),
+                if (currentUserId != null)
+                  LikeButton(postId: post.id, userId: currentUserId!),
 
                 IconButton(
                   tooltip: 'Comments',

@@ -35,9 +35,7 @@ class _AvatarPickerState extends State<AvatarPicker> {
           CircleAvatar(
             radius: 50,
             child: _hasAvatarUrl
-                ? ClipOval(
-                    child: _AvatarImage(source: widget.currentImageUrl!),
-                  )
+                ? ClipOval(child: _AvatarImage(source: widget.currentImageUrl!))
                 : const Icon(Icons.person, size: 50),
           ),
           Container(
@@ -85,12 +83,7 @@ class _AvatarImage extends StatelessWidget {
     if (_isDataUri(source)) {
       final bytes = _decodeImageBytes(source);
       if (bytes != null) {
-        return Image.memory(
-          bytes,
-          width: 100,
-          height: 100,
-          fit: BoxFit.cover,
-        );
+        return Image.memory(bytes, width: 100, height: 100, fit: BoxFit.cover);
       }
     }
 
